@@ -538,10 +538,10 @@ static int smb1390_ilim_vote_cb(struct votable *votable, void *data,
 
 	/* ILIM less than 1A is not accurate; disable charging */
 	if (ilim_uA < 900000) {
-		pr_info("ILIM %duA is too low to allow charging\n", ilim_uA);
+		pr_debug("ILIM %duA is too low to allow charging\n", ilim_uA);
 		vote(chip->disable_votable, ILIM_VOTER, true, 0);
 	} else {
-		pr_info("setting ILIM to %duA\n", ilim_uA);
+		pr_debug("setting ILIM to %duA\n", ilim_uA);
 		rc = smb1390_masked_write(chip, CORE_FTRIM_ILIM_REG,
 				CFG_ILIM_MASK,
 				DIV_ROUND_CLOSEST(ilim_uA - 500000, 100000));
