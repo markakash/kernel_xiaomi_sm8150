@@ -281,6 +281,9 @@ enum {
 	IDX_AFE_PORT_ID_SENARY_TDM_TX_6,
 	IDX_AFE_PORT_ID_SENARY_TDM_RX_7,
 	IDX_AFE_PORT_ID_SENARY_TDM_TX_7,
+	/* IDX 208-> 209 */
+	IDX_AFE_PORT_ID_PRIMARY_META_MI2S_RX,
+	IDX_AFE_PORT_ID_SECONDARY_META_MI2S_RX,
 	AFE_MAX_PORTS
 };
 
@@ -389,7 +392,7 @@ void afe_set_island_mode_cfg(u16 port_id, u32 enable_flag);
 void afe_get_island_mode_cfg(u16 port_id, u32 *enable_flag);
 int afe_port_start(u16 port_id, union afe_port_config *afe_config,
 	u32 rate);
-int afe_set_tws_channel_mode(u16 port_id, u32 channel_mode);
+int afe_set_tws_channel_mode(u32 foramt, u16 port_id, u32 channel_mode);
 int afe_port_start_v2(u16 port_id, union afe_port_config *afe_config,
 		      u32 rate, u16 afe_in_channels, u16 afe_in_bit_width,
 		      struct afe_enc_config *enc_config,
@@ -480,10 +483,14 @@ void afe_register_wakeup_irq_callback(
 int afe_get_doa_tracking_mon(u16 port_id,
 	struct doa_tracking_mon_param *doa_tracking_data);
 
-#define AFE_LPASS_CORE_HW_BLOCK_ID_NONE                        0
-#define AFE_LPASS_CORE_HW_BLOCK_ID_AVTIMER                     2
-#define AFE_LPASS_CORE_HW_MACRO_BLOCK                          3
-#define AFE_LPASS_CORE_HW_DCODEC_BLOCK                         4
+enum {
+	AFE_LPASS_CORE_HW_BLOCK_ID_NONE,
+	AFE_LPASS_CORE_HW_RSVD,
+	AFE_LPASS_CORE_HW_BLOCK_ID_AVTIMER,
+	AFE_LPASS_CORE_HW_MACRO_BLOCK,
+	AFE_LPASS_CORE_HW_DCODEC_BLOCK,
+	AFE_LPASS_CORE_HW_VOTE_MAX
+};
 
 /* Handles audio-video timer (avtimer) and BTSC vote requests from clients.
  */
