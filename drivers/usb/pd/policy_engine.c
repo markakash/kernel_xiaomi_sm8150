@@ -2093,7 +2093,7 @@ static void handle_vdm_rx(struct usbpd *pd, struct rx_msg *rx_msg)
 				 * non-zero. Just skip over the zero ones.
 				 */
 				if (svid) {
-					usbpd_dbg(&pd->dev, "Discovered SVID: 0x%04x\n",
+					usbpd_info(&pd->dev, "Discovered SVID: 0x%04x\n",
 							svid);
 					pd->adapter_svid = svid;
 					*psvid++ = svid;
@@ -3494,7 +3494,7 @@ static int psy_changed(struct notifier_block *nb, unsigned long evt, void *ptr)
 		if (val.intval == POWER_SUPPLY_TYPE_USB ||
 			val.intval == POWER_SUPPLY_TYPE_USB_CDP ||
 			val.intval == POWER_SUPPLY_TYPE_USB_FLOAT) {
-			usbpd_dbg(&pd->dev, "typec mode:%d type:%d\n",
+			usbpd_info(&pd->dev, "typec mode:%d type:%d\n",
 				typec_mode, val.intval);
 			pd->typec_mode = typec_mode;
 			queue_work(pd->wq, &pd->start_periph_work);
@@ -4118,6 +4118,7 @@ static ssize_t select_pdo_store(struct device *dev,
 		goto out;
 	}
 
+	pr_info("pdo: %d, uv: %d, ua: %d\n", pdo, uv, ua);
 	ret = pd_select_pdo(pd, pdo, uv, ua);
 	if (ret)
 		goto out;
