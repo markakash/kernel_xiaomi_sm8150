@@ -1,0 +1,1521 @@
+28:#include "step-chg-jeita.h"
+33:	pr_err("%s: %s: " fmt, chg->name,	\
+38:		if (*chg->debug_mask & (reason))		\
+39:			pr_info("%s: %s: " fmt, chg->name,	\
+42:			pr_debug("%s: %s: " fmt, chg->name,	\
+49:	&& (!chg->typec_legacy || chg->typec_legacy_use_rp_icl))
+65:	rc = regmap_read(chg->regmap, addr, &value);
+75:	return regmap_bulk_read(chg->regmap, addr, val, count);
+80:	return regmap_write(chg->regmap, addr, val);
+86:	return regmap_bulk_write(chg->regmap, addr, val, count);
+95:	return regmap_update_bits(chg->regmap, addr, mask, val);
+103:	rc = of_property_match_string(chg->dev->of_node,
+108:	*chan = iio_channel_get(chg->dev, propname);
+125:	chg->idtp_psy = power_supply_get_by_name("idt");
+126:	if (chg->idtp_psy)
+129:		rc = power_supply_set_property(chg->idtp_psy, POWER_SUPPLY_PROP_PIN_ENABLED, &val);
+174:		rc = smblib_get_charge_param(chg, &chg->param.jeita_cc_comp_hot,
+183:					&chg->param.jeita_cc_comp_cold,
+258:		vote(chg->pl_disable_votable, PL_SMB_EN_VOTER, true, 0);
+264:			dev_err(chg->dev, "Couldn't select SMB charger rc=%d\n",
+272:			dev_err(chg->dev, "Couldn't enable SMB charger rc=%d\n",
+276:		vote(chg->smb_override_votable, PL_SMB_EN_VOTER, false, 0);
+283:			dev_err(chg->dev, "Couldn't select SMB charger rc=%d\n",
+291:			dev_err(chg->dev, "Couldn't enable SMB charger rc=%d\n",
+295:		vote(chg->smb_override_votable, PL_SMB_EN_VOTER, false, 0);
+297:		vote(chg->pl_disable_votable, PL_SMB_EN_VOTER, false, 0);
+302:		vote(chg->pl_disable_votable, PL_SMB_EN_VOTER, true, 0);
+305:		vote(chg->smb_override_votable, PL_SMB_EN_VOTER, true, 0);
+317:	mutex_lock(&chg->smb_lock);
+323:			dev_err(chg->dev, "Couldn't disable secondary charger rc=%d\n",
+337:		dev_err(chg->dev, "Couldn't switch secondary charger rc=%d\n",
+342:	chg->sec_chg_selected = sec_chg;
+343:	chg->cp_reason = reason;
+346:	mutex_unlock(&chg->smb_lock);
+356:	if (chg->connector_type == POWER_SUPPLY_CONNECTOR_TYPEC) {
+359:		extcon_set_property(chg->extcon, id,
+362:		extcon_set_property(chg->extcon, id,
+364:	} else if (chg->connector_type == POWER_SUPPLY_CONNECTOR_MICRO_USB) {
+366:		extcon_set_property(chg->extcon, id,
+376:	extcon_set_state_sync(chg->extcon, EXTCON_USB, enable);
+406:	extcon_set_state_sync(chg->extcon, EXTCON_USB_HOST, enable);
+702:	rc = smblib_set_charge_param(chg, &chg->param.freq_switcher, fsw_khz);
+704:		dev_err(chg->dev, "Error in setting freq_buck rc=%d\n", rc);
+706:	if (chg->mode == PARALLEL_MASTER && chg->pl.psy) {
+713:		power_supply_set_property(chg->pl.psy,
+761:		vote(chg->icl_irq_disable_votable, USB_SUSPEND_VOTER,
+771:		vote(chg->icl_irq_disable_votable, USB_SUSPEND_VOTER,
+795:	if (chg->chg_param.smb_version == PMI632_SUBTYPE)
+817:		rc = smblib_set_opt_switcher_freq(chg, chg->chg_freq.freq_5V);
+820:				chg->chg_freq.freq_6V_8V);
+822:		rc = smblib_set_opt_switcher_freq(chg, chg->chg_freq.freq_9V);
+824:		rc = smblib_set_opt_switcher_freq(chg, chg->chg_freq.freq_12V);
+842:	if (chg->chg_param.smb_version == PMI632_SUBTYPE)
+845:	if (chg->pd_active == POWER_SUPPLY_PD_PPS_ACTIVE) {
+872:	if (chg->adapter_cc_mode)
+875:	rc = smblib_set_charge_param(chg, &chg->param.aicl_cont_threshold,
+915:	if (!chg->cp_psy)
+916:		chg->cp_psy = power_supply_get_by_name("charge_pump_master");
+918:	return !!chg->cp_psy;
+927:	if (((chg->real_charger_type != POWER_SUPPLY_TYPE_USB_HVDCP_3)
+928:		&& (chg->real_charger_type != POWER_SUPPLY_TYPE_USB_HVDCP_3P5))
+929:		|| chg->hvdcp3_standalone_config || !is_cp_available(chg)) {
+934:	rc = power_supply_get_property(chg->cp_psy, POWER_SUPPLY_PROP_CP_ILIM,
+951:	if (!chg->bms_psy)
+954:	rc = power_supply_get_property(chg->bms_psy, psp, val);
+976:	if (chg->hvdcp_disable || chg->pd_not_supported)
+1014:	if (chg->pr_swap_in_progress)
+1018:	if (!chg->dpdm_reg && of_get_property(chg->dev->of_node,
+1020:		chg->dpdm_reg = devm_regulator_get(chg->dev, "dpdm");
+1021:		if (IS_ERR(chg->dpdm_reg)) {
+1022:			rc = PTR_ERR(chg->dpdm_reg);
+1025:			chg->dpdm_reg = NULL;
+1030:	mutex_lock(&chg->dpdm_lock);
+1032:		if (chg->dpdm_reg && !chg->dpdm_enabled) {
+1034:			rc = regulator_enable(chg->dpdm_reg);
+1040:				chg->dpdm_enabled = true;
+1043:		if (chg->dpdm_reg && chg->dpdm_enabled) {
+1045:			rc = regulator_disable(chg->dpdm_reg);
+1051:				chg->dpdm_enabled = false;
+1054:	mutex_unlock(&chg->dpdm_lock);
+1188:	if (chg->pd_active) {
+1189:		chg->real_charger_type = POWER_SUPPLY_TYPE_USB_PD;
+1190:		chg->usb_psy_desc.type = POWER_SUPPLY_TYPE_USB_PD;
+1191:	} else if (chg->qc3p5_detected) {
+1192:		chg->real_charger_type = POWER_SUPPLY_TYPE_USB_HVDCP_3P5;
+1199:			chg->real_charger_type == POWER_SUPPLY_TYPE_USB)) {
+1200:			chg->real_charger_type = apsd_result->pst;
+1201:			chg->usb_psy_desc.type = apsd_result->pst;
+1206:			apsd_result->name, chg->pd_active, chg->qc3p5_detected);
+1217:		if (!chg->bms_psy)
+1218:			chg->bms_psy = psy;
+1220:			schedule_work(&chg->bms_update_work);
+1223:	if (chg->jeita_configured == JEITA_CFG_NONE)
+1224:		schedule_work(&chg->jeita_update_work);
+1226:	if (chg->sec_pl_present && !chg->pl.psy
+1228:		chg->pl.psy = psy;
+1229:		schedule_work(&chg->pl_update_work);
+1239:	chg->nb.notifier_call = smblib_notifier_call;
+1240:	rc = power_supply_reg_notifier(&chg->nb);
+1291:	sec_charger = chg->sec_pl_present ? POWER_SUPPLY_CHARGER_SEC_PL :
+1296:	cancel_delayed_work_sync(&chg->pl_enable_work);
+1298:	if (chg->wa_flags & BOOST_BACK_WA) {
+1299:		data = chg->irq_info[SWITCHER_POWER_OK_IRQ].irq_data;
+1303:			vote(chg->usb_icl_votable, BOOST_BACK_VOTER, false, 0);
+1304:			vote(chg->usb_icl_votable, WEAK_CHARGER_VOTER,
+1308:	vote(chg->pl_disable_votable, PL_DELAY_VOTER, true, 0);
+1309:	vote(chg->awake_votable, PL_DELAY_VOTER, false, 0);
+1312:	vote(chg->pl_enable_votable_indirect, USBIN_I_VOTER, false, 0);
+1313:	vote(chg->pl_enable_votable_indirect, USBIN_V_VOTER, false, 0);
+1314:	vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER, true,
+1316:	vote(chg->usb_icl_votable, SW_QC3_VOTER, false, 0);
+1317:	vote(chg->usb_icl_votable, HVDCP2_ICL_VOTER, false, 0);
+1318:	vote(chg->usb_icl_votable, CHG_TERMINATION_VOTER, false, 0);
+1319:	vote(chg->usb_icl_votable, THERMAL_THROTTLE_VOTER, false, 0);
+1320:	vote(chg->limited_irq_disable_votable, CHARGER_TYPE_VOTER,
+1322:	vote(chg->hdc_irq_disable_votable, CHARGER_TYPE_VOTER, true, 0);
+1323:	vote(chg->hdc_irq_disable_votable, HDC_IRQ_VOTER, false, 0);
+1326:	vote(chg->usb_icl_votable, SW_THERM_REGULATION_VOTER, false, 0);
+1327:	vote(chg->pl_disable_votable, SW_THERM_REGULATION_VOTER, false, 0);
+1328:	vote(chg->dc_suspend_votable, SW_THERM_REGULATION_VOTER, false, 0);
+1329:	if (chg->cp_disable_votable)
+1330:		vote(chg->cp_disable_votable, SW_THERM_REGULATION_VOTER,
+1334:	cancel_delayed_work_sync(&chg->usbov_dbc_work);
+1335:	vote(chg->awake_votable, USBOV_DBC_VOTER, false, 0);
+1336:	chg->dbc_usbov = false;
+1338:	chg->voltage_min_uv = MICRO_5V;
+1339:	chg->voltage_max_uv = MICRO_5V;
+1340:	chg->usbin_forced_max_uv = 0;
+1341:	chg->usb_icl_delta_ua = 0;
+1342:	chg->pulse_cnt = 0;
+1343:	chg->uusb_apsd_rerun_done = false;
+1344:	chg->chg_param.forced_main_fcc = 0;
+1345:	chg->report_usb_absent = false;
+1347:	del_timer_sync(&chg->apsd_timer);
+1348:	chg->apsd_ext_timeout = false;
+1352:				(u8)FLOAT_OPTIONS_MASK, chg->float_cfg);
+1358:	rc = vote(chg->usb_icl_votable, USB_PSY_VOTER, false, 0);
+1363:	rc = vote(chg->usb_icl_votable, DCP_VOTER, false, 0);
+1372:	if (chg->qc2_unsupported_voltage) {
+1375:				chg->qc2_max_pulses);
+1387:		chg->qc2_unsupported_voltage = QC2_COMPLIANT;
+1390:	chg->qc3p5_detected = false;
+1405:	if (chg->suspend_input_on_debug_batt) {
+1406:		vote(chg->usb_icl_votable, DEBUG_BOARD_VOTER, val.intval, 0);
+1407:		vote(chg->dc_suspend_votable, DEBUG_BOARD_VOTER, val.intval, 0);
+1411:		vote(chg->chg_disable_votable, DEBUG_BOARD_VOTER,
+1428:	if (!val.intval || chg->fake_usb_insertion)
+1437:	chg->uusb_apsd_rerun_done = true;
+1459:	*count = chg->pulse_cnt;
+1496:	if (chg->real_charger_type == POWER_SUPPLY_TYPE_USB &&
+1548:	if (chg->real_charger_type == POWER_SUPPLY_TYPE_USB
+1550:		&& (chg->typec_legacy
+1551:		|| chg->typec_mode == POWER_SUPPLY_TYPEC_SOURCE_DEFAULT
+1552:		|| chg->connector_type == POWER_SUPPLY_CONNECTOR_MICRO_USB)) {
+1570:		rc = smblib_set_charge_param(chg, &chg->param.usb_icl, icl_ua);
+1605:	rc = smblib_get_charge_param(chg, &chg->param.icl_max_stat, icl_ua);
+1619:	rc = smblib_select_sec_charger(chg, chg->sec_chg_selected,
+1620:				chg->cp_reason, true);
+1631:	mutex_lock(&chg->irq_status_lock);
+1633:	val->intval = chg->irq_status;
+1634:	chg->irq_status = 0;
+1643:	mutex_unlock(&chg->irq_status_lock);
+1659:	if (chg->moisture_present == enable) {
+1665:		chg->moisture_present = true;
+1688:				((chg->chg_param.smb_version == PMI632_SUBTYPE)
+1703:		vote(chg->usb_icl_votable, MOISTURE_VOTER, true, 0);
+1705:		chg->moisture_present = false;
+1706:		vote(chg->usb_icl_votable, MOISTURE_VOTER, false, 0);
+1722:				((chg->chg_param.smb_version == PMI632_SUBTYPE)
+1743:			chg->moisture_present ? "enabled" : "disabled");
+1771:	if (chg->chg_param.smb_version == PMI632_SUBTYPE)
+1799:	if (chg->dc_temp_level == 13 || chg->dc_temp_level == 9)
+1803:	rc = smblib_set_charge_param(chg, &chg->param.dc_icl, Vpsns);
+1811:	rc = vote(chg->dc_suspend_votable, USER_VOTER, suspend, 0);
+1826:		pm_stay_awake(chg->dev);
+1828:		pm_relax(chg->dev);
+1856:	if (!chg->irq_info[HIGH_DUTY_CYCLE_IRQ].irq)
+1859:	if (chg->irq_info[HIGH_DUTY_CYCLE_IRQ].enabled) {
+1862:				chg->irq_info[HIGH_DUTY_CYCLE_IRQ].irq);
+1865:			enable_irq(chg->irq_info[HIGH_DUTY_CYCLE_IRQ].irq);
+1868:	chg->irq_info[HIGH_DUTY_CYCLE_IRQ].enabled = !disable;
+1878:	if (!chg->irq_info[INPUT_CURRENT_LIMITING_IRQ].irq)
+1881:	if (chg->irq_info[INPUT_CURRENT_LIMITING_IRQ].enabled) {
+1884:				chg->irq_info[INPUT_CURRENT_LIMITING_IRQ].irq);
+1888:				chg->irq_info[INPUT_CURRENT_LIMITING_IRQ].irq);
+1891:	chg->irq_info[INPUT_CURRENT_LIMITING_IRQ].enabled = !disable;
+1901:	if (!chg->irq_info[USBIN_ICL_CHANGE_IRQ].irq)
+1904:	if (chg->irq_info[USBIN_ICL_CHANGE_IRQ].enabled) {
+1907:				chg->irq_info[USBIN_ICL_CHANGE_IRQ].irq);
+1910:			enable_irq(chg->irq_info[USBIN_ICL_CHANGE_IRQ].irq);
+1913:	chg->irq_info[USBIN_ICL_CHANGE_IRQ].enabled = !disable;
+1923:	if (!chg->irq_info[TEMP_CHANGE_IRQ].irq)
+1926:	if (chg->irq_info[TEMP_CHANGE_IRQ].enabled && disable) {
+1927:		if (chg->irq_info[TEMP_CHANGE_IRQ].wake)
+1928:			disable_irq_wake(chg->irq_info[TEMP_CHANGE_IRQ].irq);
+1929:		disable_irq_nosync(chg->irq_info[TEMP_CHANGE_IRQ].irq);
+1930:	} else if (!chg->irq_info[TEMP_CHANGE_IRQ].enabled && !disable) {
+1931:		enable_irq(chg->irq_info[TEMP_CHANGE_IRQ].irq);
+1932:		if (chg->irq_info[TEMP_CHANGE_IRQ].wake)
+1933:			enable_irq_wake(chg->irq_info[TEMP_CHANGE_IRQ].irq);
+1936:	chg->irq_info[TEMP_CHANGE_IRQ].enabled = !disable;
+2063:		= (get_client_vote(chg->usb_icl_votable, USER_VOTER) == 0)
+2064:		 || get_client_vote(chg->dc_suspend_votable, USER_VOTER);
+2090:	if (!chg->bms_psy)
+2093:	rc = power_supply_get_property(chg->bms_psy,
+2128:		chg->report_usb_absent = true;
+2129:		power_supply_changed(chg->batt_psy);
+2138:	if (chg->fake_capacity >= 0) {
+2139:		val->intval = chg->fake_capacity;
+2154:	if ((usb_online || chg->typec_mode == POWER_SUPPLY_TYPEC_SOURCE_HIGH)
+2155:		&& chg->fake_dc_on) {
+2161:		if (!chg->pd_active) {
+2162:			chg->real_charger_type = POWER_SUPPLY_TYPE_USB_DCP;
+2163:			chg->usb_psy_desc.type = POWER_SUPPLY_TYPE_USB_DCP;
+2168:			&& chg->power_good_en) {
+2233:	if (chg->dbc_usbov) {
+2291:	if ((get_client_vote_locked(chg->usb_icl_votable, JEITA_VOTER) == 0) ||
+2292:		(get_client_vote_locked(chg->dc_suspend_votable, JEITA_VOTER) == 1)) {
+2320:			chg->last_batt_stat = val->intval;
+2336:	if (!usb_online && chg->typec_mode != POWER_SUPPLY_TYPEC_SOURCE_HIGH
+2337:			&& dc_online && chg->fake_dc_on) {
+2343:			chg->fake_dc_on = 0;
+2344:		else if (chg->last_batt_stat == POWER_SUPPLY_STATUS_FULL &&
+2347:			chg->last_batt_stat = val->intval;
+2363:	if (is_client_vote_enabled_locked(chg->usb_icl_votable,
+2374:		&& chg->fake_batt_status == POWER_SUPPLY_STATUS_FULL) {
+2376:		chg->last_batt_stat = val->intval;
+2452:			effective_fv_uv = get_effective_result_locked(chg->fv_votable);
+2486:	val->intval = chg->system_temp_level;
+2493:	val->intval = chg->thermal_levels;
+2500:	val->intval = chg->dc_temp_level;
+2510:	if (chg->fake_input_current_limited >= 0) {
+2511:		val->intval = chg->fake_input_current_limited;
+2520:	val->intval = (stat & SOFT_ILIMIT_BIT) || chg->is_hdc;
+2558:	if (chg->chg_param.smb_version == PMI632_SUBTYPE)
+2587:		vote(chg->awake_votable, CHG_AWAKE_VOTER, false, 0);
+2588:		vote(chg->awake_votable, DC_AWAKE_VOTER, false, 0);
+2598:	if (chg->lpd_status) {
+2615:	if (chg->lpd_enabled == true) {
+2616:		if (chg->init_once == false)	{
+2617:			rc = smblib_read_iio_channel(chg, chg->iio.hw_version_gpio5,
+2626:			chg->init_once = true;
+2628:			for (i = 0; i < chg->lpd_levels; i++) {
+2629:				data = (chg->lpd_hwversion[i] * 100) / (100000 + chg->lpd_hwversion[i]);
+2631:					chg->support_liquid = true;
+2638:	smblib_err(chg, "support_liquid is %d\n", chg->support_liquid);
+2639:	return chg->support_liquid;
+2652:	rc = vote(chg->usb_icl_votable, USER_VOTER, (bool)val->intval, 0);
+2659:	rc = vote(chg->dc_suspend_votable, USER_VOTER, (bool)val->intval, 0);
+2666:	power_supply_changed(chg->batt_psy);
+2673:	chg->fake_capacity = val->intval;
+2675:	power_supply_changed(chg->batt_psy);
+2685:		chg->fake_batt_status = val->intval;
+2687:		chg->fake_batt_status = -EINVAL;
+2689:	power_supply_changed(chg->batt_psy);
+2709:		schedule_delayed_work(&chg->reg_work,
+2717:					get_effective_result(chg->usb_icl_votable),
+2718:					get_effective_client(chg->usb_icl_votable));
+2720:					get_effective_result(chg->fcc_votable),
+2721:					get_effective_client(chg->fcc_votable));
+2723:					get_effective_result(chg->fv_votable),
+2724:					get_effective_client(chg->fv_votable));
+2726:		power_supply_get_property(chg->usb_psy,
+2731:		power_supply_get_property(chg->usb_psy,
+2736:		power_supply_get_property(chg->usb_psy,
+2741:		power_supply_get_property(chg->usb_psy,
+2746:		power_supply_get_property(chg->usb_psy,
+2751:		power_supply_get_property(chg->usb_psy,
+2759:		if (!chg->usb_main_psy) {
+2760:			chg->usb_main_psy = power_supply_get_by_name("main");
+2763:			power_supply_get_property(chg->usb_main_psy,
+2774:		schedule_delayed_work(&chg->reg_work,
+2777:		schedule_delayed_work(&chg->reg_work,
+2803:	if (!chg->wls_psy) {
+2804:		chg->wls_psy = power_supply_get_by_name("wireless");
+2805:		if (!chg->wls_psy)
+2808:	rc = power_supply_get_property(chg->wls_psy,
+2812:	rc = power_supply_get_property(chg->wls_psy,
+2818:			thermal_icl_ua = chg->thermal_mitigation_dc[temp_level];
+2821:			thermal_icl_ua = chg->thermal_mitigation_bpp_qc2[temp_level];
+2825:				thermal_icl_ua = chg->thermal_mitigation_epp[temp_level];
+2827:				thermal_icl_ua = chg->thermal_mitigation_bpp_qc3[temp_level];
+2832:				thermal_icl_ua = chg->thermal_mitigation_epp[temp_level];
+2834:				thermal_icl_ua = chg->thermal_mitigation_bpp[temp_level];
+2838:				thermal_icl_ua = chg->thermal_mitigation_epp[temp_level];
+2840:				thermal_icl_ua = chg->thermal_mitigation_bpp[temp_level];
+2844:			thermal_icl_ua = chg->thermal_mitigation_bpp[temp_level];
+2847:			thermal_icl_ua = chg->thermal_mitigation_bpp[temp_level];
+2850:	vote(chg->dc_icl_votable, THERMAL_DAEMON_VOTER, true, thermal_icl_ua);
+2877:	if (chg->dc_thermal_levels <= 0)
+2879:	if (val->intval > chg->dc_thermal_levels)
+2881:	chg->dc_temp_level = val->intval;
+2883:	if (chg->dc_temp_level == chg->dc_thermal_levels)
+2884:		return vote(chg->chg_disable_votable,
+2887:	vote(chg->chg_disable_votable, THERMAL_DAEMON_VOTER, false, 0);
+2888:	if (chg->dc_temp_level == 0)
+2889:		return vote(chg->dc_icl_votable, THERMAL_DAEMON_VOTER, false, 0);
+2892:			val->intval, batt_temp.intval, chg->dc_thermal_levels,dc_present.intval);
+2896:	vote(chg->dc_icl_votable, THERMAL_DAEMON_VOTER, true,
+2897:		chg->thermal_mitigation_dc[chg->dc_temp_level]);
+2910:	if (chg->system_temp_level >= MAX_TEMP_LEVEL)
+2913:	switch (chg->real_charger_type) {
+2915:		thermal_icl_ua = chg->thermal_mitigation_qc2[chg->system_temp_level];
+2918:		if (chg->cp_reason == POWER_SUPPLY_CP_HVDCP3) {
+2919:			if (chg->is_qc_class_a)
+2921:					chg->thermal_fcc_qc3_cp[chg->system_temp_level];
+2924:					chg->thermal_fcc_qc3_classb_cp[chg->system_temp_level];
+2927:				chg->thermal_fcc_qc3_normal[chg->system_temp_level];
+2931:		if (chg->cp_reason == POWER_SUPPLY_CP_PPS) {
+2933:				chg->thermal_fcc_pps_cp[chg->system_temp_level];
+2935:			if (chg->voltage_min_uv >= PD_MICRO_5V
+2936:					&& chg->voltage_min_uv < PD_MICRO_5P9V)
+2938:						chg->thermal_mitigation_pd_base[chg->system_temp_level];
+2939:			else if (chg->voltage_min_uv >= PD_MICRO_5P9V
+2940:						&& chg->voltage_min_uv < PD_MICRO_6P5V)
+2942:						chg->thermal_mitigation_pd_base[chg->system_temp_level]
+2944:			else if (chg->voltage_min_uv >= PD_MICRO_6P5V
+2945:						&& chg->voltage_min_uv < PD_MICRO_7P5V)
+2947:						chg->thermal_mitigation_pd_base[chg->system_temp_level]
+2949:			else if (chg->voltage_min_uv >= PD_MICRO_7P5V
+2950:						&& chg->voltage_min_uv <= PD_MICRO_8P5V)
+2952:						chg->thermal_mitigation_pd_base[chg->system_temp_level]
+2954:			else if (chg->voltage_min_uv >= PD_MICRO_8P5V)
+2956:						chg->thermal_mitigation_pd_base[chg->system_temp_level]
+2960:						chg->thermal_mitigation_pd_base[chg->system_temp_level];
+2965:		thermal_icl_ua = chg->thermal_mitigation_dcp[chg->system_temp_level];
+2969:	if (chg->system_temp_level == 0) {
+2971:		rc = vote(chg->usb_icl_votable, THERMAL_DAEMON_VOTER, false, 0);
+2975:		rc = vote(chg->fcc_votable, THERMAL_DAEMON_VOTER, false, 0);
+2980:		pr_info("thermal_icl_ua is %d, chg->system_temp_level: %d\n",
+2981:				thermal_icl_ua, chg->system_temp_level);
+2984:		if (chg->real_charger_type == POWER_SUPPLY_TYPE_USB_HVDCP_3
+2985:			|| (chg->cp_reason == POWER_SUPPLY_CP_PPS
+2986:				&& chg->real_charger_type == POWER_SUPPLY_TYPE_USB_PD)) {
+2987:			if (chg->system_temp_level >= ICL_LIMIT_LEVEL_THR)
+2989:						chg->thermal_mitigation_icl[chg->system_temp_level];
+2990:			if (chg->system_temp_level >= ICL_LIMIT_LEVEL_THR) {
+2991:				rc = vote(chg->usb_icl_votable, THERMAL_DAEMON_VOTER,
+2997:				rc = vote(chg->usb_icl_votable, THERMAL_DAEMON_VOTER,
+3005:				rc = vote(chg->usb_icl_votable, THERMAL_DAEMON_VOTER, true,
+3013:			rc = vote(chg->fcc_votable, THERMAL_DAEMON_VOTER, true,
+3039:			"chg->system_temp_level:%d, charger_type:%d\n",
+3040:			val->intval, batt_temp.intval, chg->thermal_levels,
+3041:			chg->system_temp_level, chg->real_charger_type);
+3046:	if (chg->thermal_levels <= 0)
+3049:	if (val->intval > chg->thermal_levels)
+3052:	chg->system_temp_level = val->intval;
+3054:	if (chg->system_temp_level >= (chg->thermal_levels - 1))
+3055:		return vote(chg->chg_disable_votable,
+3058:	vote(chg->chg_disable_votable, THERMAL_DAEMON_VOTER, false, 0);
+3063:	if (chg->system_temp_level == 0)
+3064:		return vote(chg->fcc_votable, THERMAL_DAEMON_VOTER, false, 0);
+3066:	vote(chg->fcc_votable, THERMAL_DAEMON_VOTER, true,
+3067:			chg->thermal_mitigation[chg->system_temp_level]);
+3075:	chg->fake_input_current_limited = val->intval;
+3096:	chg->auto_recharge_soc = val->intval;
+3172:				chg->chg_freq.freq_5V);
+3176:				chg->chg_freq.freq_9V);
+3180:				chg->chg_freq.freq_12V);
+3184:				chg->chg_freq.freq_removal);
+3204:				chg->chg_freq.freq_5V);
+3207:				chg->chg_freq.freq_6V_8V);
+3210:				chg->chg_freq.freq_9V);
+3213:				chg->chg_freq.freq_12V);
+3223:	if (chg->real_charger_type == POWER_SUPPLY_TYPE_USB_HVDCP) {
+3224:		if (chg->qc2_unsupported) {
+3226:			power_supply_changed(chg->usb_main_psy);
+3237:		vote(chg->usb_icl_votable, HVDCP2_ICL_VOTER, false, 0);
+3240:	if (chg->real_charger_type == POWER_SUPPLY_TYPE_USB_HVDCP_3
+3241:		|| chg->real_charger_type == POWER_SUPPLY_TYPE_USB_HVDCP_3P5) {
+3247:	power_supply_changed(chg->usb_main_psy);
+3256:	if (chg->raise_vbus_to_detect)
+3266:		if (chg->pulse_cnt > MAX_PLUSE_COUNT_ALLOWED)
+3272:		chg->pulse_cnt++;
+3286:			chg->pulse_cnt--;
+3290:				rc, chg->pulse_cnt);
+3291:		if (chg->is_qc_class_a && chg->sec_cp_present) {
+3292:			if (chg->pulse_cnt >= HIGH_NUM_PULSE_THR
+3293:					 && !chg->high_vbus_detected) {
+3294:				vote(chg->usb_icl_votable, QC_A_CP_ICL_MAX_VOTER, true,
+3296:				chg->high_vbus_detected = true;
+3302:		if (!rc && chg->pulse_cnt)
+3303:			chg->pulse_cnt--;
+3305:				rc, chg->pulse_cnt);
+3306:		if (chg->is_qc_class_a && chg->sec_cp_present) {
+3307:			if (chg->pulse_cnt < HIGH_NUM_PULSE_THR
+3308:					 && chg->high_vbus_detected) {
+3309:				vote(chg->usb_icl_votable, QC_A_CP_ICL_MAX_VOTER, false,
+3311:				chg->high_vbus_detected = false;
+3316:		target_icl_ua = get_effective_result(chg->usb_icl_votable);
+3319:			rc = power_supply_get_property(chg->usb_psy,
+3335:		if (target_icl_ua != get_client_vote(chg->usb_icl_votable,
+3337:			chg->usb_icl_delta_ua = 0;
+3339:		chg->usb_icl_delta_ua += 100000;
+3340:		vote(chg->usb_icl_votable, SW_QC3_VOTER, true,
+3343:				target_icl_ua, chg->usb_icl_delta_ua);
+3353:		if (chg->qc2_unsupported)
+3356:		if (chg->qc2_unsupported_voltage == QC2_NON_COMPLIANT_9V) {
+3371:			vote(chg->usb_icl_votable, HVDCP2_ICL_VOTER,
+3379:		vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER, true,
+3385:		if (chg->qc2_unsupported)
+3388:		if (chg->qc2_unsupported_voltage == QC2_NON_COMPLIANT_12V) {
+3403:			vote(chg->usb_icl_votable, HVDCP2_ICL_VOTER,
+3411:		vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER, true,
+3415:		chg->qc3p5_detected = true;
+3441:		dev_err(chg->dev, "Couldn't configure s/w jeita rc=%d\n",
+3455:	if (!chg->idtp_psy) {
+3456:		chg->idtp_psy = power_supply_get_by_name("idt");
+3457:		if (!chg->idtp_psy)
+3462:	chg->idtp_psy = power_supply_get_by_name("idt");
+3463:	if (chg->idtp_psy)
+3464:		chg->wls_chip_psy = chg->idtp_psy;
+3466:		chg->wip_psy = power_supply_get_by_name("rx1618");
+3467:		if (chg->wip_psy)
+3468:			chg->wls_chip_psy = chg->wip_psy;
+3473:	if (chg->wls_chip_psy)
+3474:		rc = power_supply_get_property(chg->wls_chip_psy,
+3484:	if (!(chg->wa_flags & SW_THERM_REGULATION_WA))
+3505:		if (is_client_vote_enabled(chg->usb_icl_votable,
+3507:			vote(chg->awake_votable, SW_THERM_REGULATION_VOTER,
+3509:			schedule_delayed_work(&chg->thermal_regulation_work, 0);
+3512:		cancel_delayed_work_sync(&chg->thermal_regulation_work);
+3513:		vote(chg->awake_votable, SW_THERM_REGULATION_VOTER, false, 0);
+3527:	if (!chg->pl.psy)
+3528:		chg->pl.psy = power_supply_get_by_name("parallel");
+3530:	rc = smblib_read_iio_channel(chg, chg->iio.die_temp_chan,
+3531:				DIV_FACTOR_DECIDEGC, &chg->die_temp);
+3537:	rc = smblib_read_iio_channel(chg, chg->iio.connector_temp_chan,
+3538:				DIV_FACTOR_DECIDEGC, &chg->connector_temp);
+3544:	rc = smblib_read_iio_channel(chg, chg->iio.skin_temp_chan,
+3545:				DIV_FACTOR_DECIDEGC, &chg->skin_temp);
+3551:	if (chg->sec_chg_selected == POWER_SUPPLY_CHARGER_SEC_CP) {
+3553:			rc = power_supply_get_property(chg->cp_psy,
+3560:			chg->smb_temp = pval.intval;
+3563:			chg->smb_temp = -ENODATA;
+3565:	} else if (chg->pl.psy && chg->sec_chg_selected ==
+3567:		rc = power_supply_get_property(chg->pl.psy,
+3574:		chg->smb_temp = pval.intval;
+3576:		chg->smb_temp = -ENODATA;
+3627:	if (chg->connector_temp > CONNECTOR_TEMP_SHDN_THRESH ||
+3628:		chg->skin_temp > SKIN_TEMP_SHDN_THRESH) {
+3636:	if (chg->smb_temp > SMB_TEMP_SHDN_THRESH) {
+3643:	if (chg->connector_temp > CONNECTOR_TEMP_RST_THRESH ||
+3644:			chg->skin_temp > SKIN_TEMP_RST_THRESH ||
+3645:			chg->smb_temp > SMB_TEMP_RST_THRESH ||
+3646:			chg->die_temp > DIE_TEMP_RST_THRESH) {
+3652:	if (chg->connector_temp > CONNECTOR_TEMP_REG_H_THRESH ||
+3653:			chg->skin_temp > SKIN_TEMP_REG_H_THRESH ||
+3654:			chg->smb_temp > SMB_TEMP_REG_H_THRESH ||
+3655:			chg->die_temp > DIE_TEMP_REG_H_THRESH) {
+3661:	if (chg->connector_temp > CONNECTOR_TEMP_REG_L_THRESH ||
+3662:			chg->skin_temp > SKIN_TEMP_REG_L_THRESH ||
+3663:			chg->smb_temp > SMB_TEMP_REG_L_THRESH ||
+3664:			chg->die_temp > DIE_TEMP_REG_L_THRESH) {
+3670:			chg->die_temp, chg->connector_temp, chg->smb_temp,
+3671:			chg->skin_temp, thermal_status);
+3673:	if (thermal_status != chg->thermal_status) {
+3674:		chg->thermal_status = thermal_status;
+3679:		if (chg->thermal_status == TEMP_ALERT_LEVEL)
+3682:		vote(chg->smb_override_votable, SW_THERM_REGULATION_VOTER,
+3690:		if (!chg->cp_disable_votable)
+3691:			chg->cp_disable_votable = find_votable("CP_DISABLE");
+3692:		if (chg->cp_disable_votable)
+3693:			vote(chg->cp_disable_votable, SW_THERM_REGULATION_VOTER,
+3696:		vote(chg->pl_disable_votable, SW_THERM_REGULATION_VOTER,
+3705:		if (chg->thermal_status == TEMP_SHUT_DOWN_SMB)
+3709:		vote(chg->dc_suspend_votable, SW_THERM_REGULATION_VOTER,
+3711:		vote(chg->usb_icl_votable, SW_THERM_REGULATION_VOTER,
+3722:	if (is_client_vote_enabled(chg->usb_icl_votable,
+3724:		schedule_delayed_work(&chg->thermal_regulation_work,
+3734:	vote(chg->awake_votable, SW_THERM_REGULATION_VOTER, false, 0);
+3747:	if (!chg->wls_psy) {
+3748:		chg->wls_psy = power_supply_get_by_name("wireless");
+3749:		if (!chg->wls_psy)
+3753:	rc = power_supply_get_property(chg->wls_psy,
+3757:		dev_err(chg->dev, "Couldn't get POWER_SUPPLY_PROP_VOLTAGE_REGULATION, rc=%d\n",
+3769:	if (chg->chg_param.smb_version == PMI632_SUBTYPE) {
+3791:	if (chg->chg_param.smb_version == PMI632_SUBTYPE) {
+3796:	if (get_client_vote(chg->dc_suspend_votable, USER_VOTER)) {
+3801:	if (is_client_vote_enabled_locked(chg->dc_suspend_votable,
+3817:		 get_client_vote_locked(chg->dc_suspend_votable, JEITA_VOTER) == 1) {
+3822:	if (chg->fake_dc_on) {
+3844:		vote(chg->awake_votable, DC_AWAKE_VOTER, true, 0);
+3845:		//schedule_delayed_work(&chg->dc_input_current_work,
+3848:		vote(chg->awake_votable, DC_AWAKE_VOTER, false, 0);
+3849:		//cancel_delayed_work_sync(&chg->dc_input_current_work);
+3857:	val->intval = get_effective_result_locked(chg->dc_icl_votable);
+3873:	if (!chg->wls_psy) {
+3874:		chg->wls_psy = power_supply_get_by_name("wireless");
+3875:		if (!chg->wls_psy)
+3879:	rc = power_supply_get_property(chg->wls_psy,
+3883:		dev_err(chg->dev, "Couldn't get POWER_SUPPLY_PROP_INPUT_VOLTAGE_REGULATION, rc=%d\n",
+3897:	rc = vote(chg->dc_icl_votable, DCIN_ADAPTER_VOTER, true, val->intval);
+3908:	if (!chg->wls_psy) {
+3909:		chg->wls_psy = power_supply_get_by_name("wireless");
+3910:		if (!chg->wls_psy)
+3914:	rc = power_supply_get_property(chg->wls_psy,
+3920:			vote(chg->dc_icl_votable, DCIN_LIMIT_VOTER, true, 2000000);
+3922:			vote(chg->dc_icl_votable, DCIN_LIMIT_VOTER, true, 1800000);
+3924:			vote(chg->dc_icl_votable, DCIN_LIMIT_VOTER, false, 0);
+3927:			vote(chg->dc_icl_votable, DCIN_LIMIT_VOTER, true, 1100000);
+3929:			vote(chg->dc_icl_votable, DCIN_LIMIT_VOTER, true, 1000000);
+3931:			vote(chg->dc_icl_votable, DCIN_LIMIT_VOTER, false, 0);
+3937:	rc = power_supply_set_property(chg->wls_psy,
+3941:		dev_err(chg->dev, "Couldn't set POWER_SUPPLY_PROP_VOLTAGE_REGULATION, rc=%d\n",
+3950:	if ((val->intval > 0) && (val->intval < chg->last_wls_vout)) {
+3952:		alarm_start_relative(&chg->dcin_aicl_alarm,
+3956:	chg->last_wls_vout = val->intval;
+3965:	rc = vote(chg->dc_suspend_votable, VOUT_VOTER, true, 0);
+4002:	rc = vote(chg->dc_suspend_votable, VOUT_VOTER, false, 0);
+4039:	if (get_client_vote_locked(chg->usb_icl_votable, USER_VOTER) == 0) {
+4044:	if (is_client_vote_enabled_locked(chg->usb_icl_votable,
+4058:	if (usb_present && chg->typec_mode == POWER_SUPPLY_TYPEC_SINK_AUDIO_ADAPTER) {
+4064:			get_client_vote_locked(chg->usb_icl_votable, JEITA_VOTER) == 0) {
+4069:	if (usb_present && chg->power_good_en) {
+4071:		if (chg->typec_mode == POWER_SUPPLY_TYPEC_SINK)
+4095:	switch (chg->real_charger_type) {
+4097:		if (chg->qc2_unsupported_voltage == QC2_NON_COMPLIANT_9V) {
+4100:		} else if (chg->qc2_unsupported_voltage ==
+4109:		if (chg->chg_param.smb_version == PMI632_SUBTYPE)
+4125:	switch (chg->real_charger_type) {
+4127:		if (chg->qc2_unsupported_voltage == QC2_NON_COMPLIANT_9V) {
+4130:		} else if (chg->qc2_unsupported_voltage ==
+4138:		if (chg->chg_param.smb_version == PMI632_SUBTYPE)
+4144:		val->intval = chg->voltage_max_uv;
+4161:	switch (chg->real_charger_type) {
+4168:		val->intval = MICRO_5V + (step_uv * chg->pulse_cnt);
+4172:		val->intval = chg->voltage_min_uv +
+4173:			((chg->voltage_max_uv - chg->voltage_min_uv) / 2);
+4188:	if (!chg->iio.mid_chan)
+4191:	rc = iio_read_channel_processed(chg->iio.mid_chan, &val->intval);
+4212:	if (!chg->iio.usbin_v_chan)
+4215:	rc = iio_read_channel_processed(chg->iio.usbin_v_chan, &val->intval);
+4241:	if (chg->chg_param.smb_version == PM8150B_SUBTYPE && pval.intval)
+4252:	if (!chg->iio.vph_v_chan)
+4255:	rc = iio_read_channel_processed(chg->iio.vph_v_chan, &val->intval);
+4269:	if (chg->iio.usbin_v_chan) {
+4270:		rc = iio_read_channel_processed(chg->iio.usbin_v_chan,
+4287:	if (!chg->iio.sbux_chan)
+4306:	rc = iio_read_channel_processed(chg->iio.sbux_chan, &r_sbu1);
+4325:	rc = iio_read_channel_processed(chg->iio.sbux_chan, &r_sbu2);
+4363:	if (chg->iio.temp_chan) {
+4364:		rc = iio_read_channel_processed(chg->iio.temp_chan,
+4456:	if (chg->snk_debug_acc_detected && usb_present) {
+4460:		chg->snk_debug_acc_detected = true;
+4471:	if (chg->lpd_stage == LPD_STAGE_COMMIT)
+4553:	chg->power_role = val->intval;
+4559:	return (chg->typec_mode > POWER_SUPPLY_TYPEC_NONE &&
+4560:		chg->typec_mode < POWER_SUPPLY_TYPEC_SOURCE_DEFAULT);
+4605:	if (chg->iio.usbin_i_chan) {
+4606:		rc = iio_read_channel_processed(chg->iio.usbin_i_chan,
+4619:		switch (chg->chg_param.smb_version) {
+4630:		if (chg->otg_present || smblib_get_prop_dfp_mode(chg) !=
+4679:	return smblib_get_charge_param(chg, &chg->param.icl_stat, &val->intval);
+4688:	switch (chg->real_charger_type) {
+4701:		val->intval = chg->voltage_min_uv;
+4714:	val->intval = chg->pd_hard_reset;
+4721:	val->intval = chg->ok_to_pd;
+4744:		rc = power_supply_get_property(chg->cp_psy,
+4750:	if (chg->wa_flags & SW_THERM_REGULATION_WA) {
+4751:		if (chg->smb_temp == -ENODATA)
+4754:		if (chg->smb_temp > SMB_TEMP_RST_THRESH)
+4757:		if (chg->smb_temp > SMB_TEMP_REG_H_THRESH)
+4760:		if (chg->smb_temp > SMB_TEMP_REG_L_THRESH)
+4798:	if (chg->wa_flags & SW_THERM_REGULATION_WA) {
+4799:		if (chg->die_temp == -ENODATA)
+4802:		if (chg->die_temp > DIE_TEMP_RST_THRESH)
+4805:		if (chg->die_temp > DIE_TEMP_REG_H_THRESH)
+4808:		if (chg->die_temp > DIE_TEMP_REG_L_THRESH)
+4838:	if (chg->wa_flags & SW_THERM_REGULATION_WA) {
+4839:		if (chg->connector_temp == -ENODATA)
+4842:		if (chg->connector_temp > CONNECTOR_TEMP_RST_THRESH)
+4845:		if (chg->connector_temp > CONNECTOR_TEMP_REG_H_THRESH)
+4848:		if (chg->connector_temp > CONNECTOR_TEMP_REG_L_THRESH)
+4880:	if (!chg->en_skin_therm_mitigation)
+4922:	if (chg->chg_param.smb_version == PM8150B_SUBTYPE && dc_present)
+4955:	if (chg->pd_active) {
+4956:		icl = get_client_vote(chg->usb_icl_votable, PD_VOTER);
+4957:		rc = vote(chg->usb_icl_votable, PD_VOTER, true, val->intval);
+4959:			power_supply_changed(chg->usb_psy);
+4976:	if (chg->real_charger_type == POWER_SUPPLY_TYPE_USB_FLOAT
+4984:	if (chg->real_charger_type == POWER_SUPPLY_TYPE_USB_FLOAT) {
+4989:			if ((chg->float_cfg & FLOAT_OPTIONS_MASK)
+4995:				rc = vote(chg->usb_icl_votable,
+5004:			if (chg->connector_type ==
+5015:				rc = vote(chg->usb_icl_votable,
+5020:				rc = vote(chg->usb_icl_votable,
+5031:			chg->real_charger_type = POWER_SUPPLY_TYPE_USB;
+5032:			chg->usb_psy_desc.type = POWER_SUPPLY_TYPE_USB;
+5033:			rc = vote(chg->usb_icl_votable, USB_PSY_VOTER,
+5037:			rc = vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER,
+5051:		rc = vote(chg->usb_icl_votable, USB_PSY_VOTER, true,
+5058:		rc = vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER, false, 0);
+5075:	if (!chg->pd_active) {
+5086:	} else if (chg->system_suspend_supported) {
+5088:			rc = vote(chg->usb_icl_votable,
+5091:			rc = vote(chg->usb_icl_votable,
+5102:	if (chg->recheck_charger)
+5105:	status |= chg->precheck_charger_type << 4;
+5106:	status |= chg->real_charger_type;
+5117:		cancel_delayed_work_sync(&chg->charger_type_recheck);
+5118:		chg->recheck_charger = false;
+5128:	rc = smblib_set_charge_param(chg, &chg->param.freq_switcher,
+5129:				val->intval <= chg->boost_threshold_ua ?
+5130:				chg->chg_freq.freq_below_otg_threshold :
+5131:				chg->chg_freq.freq_above_otg_threshold);
+5133:		dev_err(chg->dev, "Error in setting freq_boost rc=%d\n", rc);
+5137:	chg->boost_current_ua = val->intval;
+5147:	if (val->intval == chg->usbin_forced_max_uv)
+5153:		chg->usbin_forced_max_uv = val->intval;
+5156:	} else if (chg->usbin_forced_max_uv) {
+5157:		chg->usbin_forced_max_uv = 0;
+5162:	power_supply_changed(chg->usb_psy);
+5169:	if (en == chg->typec_irq_en)
+5174:			chg->irq_info[TYPEC_ATTACH_DETACH_IRQ].irq);
+5176:			chg->irq_info[TYPEC_CC_STATE_CHANGE_IRQ].irq);
+5178:			chg->irq_info[TYPEC_OR_RID_DETECTION_CHANGE_IRQ].irq);
+5181:			chg->irq_info[TYPEC_ATTACH_DETACH_IRQ].irq);
+5183:			chg->irq_info[TYPEC_CC_STATE_CHANGE_IRQ].irq);
+5185:			chg->irq_info[TYPEC_OR_RID_DETECTION_CHANGE_IRQ].irq);
+5188:	chg->typec_irq_en = en;
+5200:	if (chg->connector_type == POWER_SUPPLY_CONNECTOR_MICRO_USB)
+5204:			chg->power_role, val->intval);
+5206:	if (chg->power_role == val->intval) {
+5208:				chg->power_role);
+5227:	if ((chg->power_role == POWER_SUPPLY_TYPEC_PR_DUAL) &&
+5234:	cancel_delayed_work(&chg->pr_lock_clear_work);
+5235:	spin_lock(&chg->typec_pr_lock);
+5236:	if (!chg->pr_lock_in_progress && is_pr_lock) {
+5239:		schedule_delayed_work(&chg->pr_lock_clear_work,
+5241:	} else if (chg->pr_lock_in_progress && !is_pr_lock) {
+5246:	chg->pr_lock_in_progress = is_pr_lock;
+5247:	spin_unlock(&chg->typec_pr_lock);
+5254:		power_role = chg->typec_try_mode;
+5278:	chg->power_role = val->intval;
+5310:	min_uv = min(val->intval, chg->voltage_max_uv);
+5311:	if (chg->voltage_min_uv == min_uv)
+5315:					       chg->voltage_max_uv);
+5322:	chg->voltage_min_uv = min_uv;
+5323:	power_supply_changed(chg->usb_main_psy);
+5333:	max_uv = max(val->intval, chg->voltage_min_uv);
+5334:	if (chg->voltage_max_uv == max_uv)
+5344:	rc = smblib_set_usb_pd_allowed_voltage(chg, chg->voltage_min_uv,
+5352:	chg->voltage_max_uv = max_uv;
+5353:	power_supply_changed(chg->usb_main_psy);
+5366:	chg->pd_active = val->intval;
+5368:	smblib_apsd_enable(chg, !chg->pd_active);
+5372:	if (chg->pd_active) {
+5373:		vote(chg->limited_irq_disable_votable, CHARGER_TYPE_VOTER,
+5375:		vote(chg->hdc_irq_disable_votable, CHARGER_TYPE_VOTER,
+5383:		vote(chg->usb_icl_votable, PD_VOTER, true, USBIN_100MA);
+5384:		vote(chg->usb_icl_votable, USB_PSY_VOTER, false, 0);
+5385:		vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER, false, 0);
+5388:		rc = vote(chg->usb_icl_votable, PD_VERIFED_VOTER, true, PD_UNVERIFED_CURRENT);
+5396:		if (chg->pd_active == POWER_SUPPLY_PD_PPS_ACTIVE
+5397:						&& chg->sec_cp_present) {
+5402:				dev_err(chg->dev, "Couldn't enable secondary charger rc=%d\n",
+5406:		vote(chg->usb_icl_votable, PD_VOTER, false, 0);
+5407:		vote(chg->limited_irq_disable_votable, CHARGER_TYPE_VOTER,
+5409:		vote(chg->hdc_irq_disable_votable, CHARGER_TYPE_VOTER,
+5412:		sec_charger = chg->sec_pl_present ?
+5418:			dev_err(chg->dev,
+5423:		if (chg->ok_to_pd) {
+5424:			chg->ok_to_pd = false;
+5428:	if (!chg->fake_usb_insertion)
+5435:			!!chg->pd_active ? FORCE_5V : FORCE_NULL);
+5437:	power_supply_changed(chg->usb_psy);
+5451:		dev_err(chg->dev, "Couldn't %s ship mode, rc=%d\n",
+5462:	if (chg->pd_hard_reset == val->intval)
+5465:	chg->pd_hard_reset = val->intval;
+5468:			(chg->pd_hard_reset) ? EXIT_SNK_BASED_ON_CC_BIT : 0);
+5542:	if (chg->jeita_soft_fcc[0] < 0 || chg->jeita_soft_fcc[1] < 0 ||
+5543:		chg->jeita_soft_fv[0] < 0 || chg->jeita_soft_fv[1] < 0)
+5550:	if (chg->jeita_arb_flag && soft_jeita)
+5554:	if (!chg->jeita_arb_flag && !soft_jeita)
+5558:	if (!chg->jeita_arb_flag && soft_jeita) {
+5559:		vote(chg->chg_disable_votable, JEITA_ARB_VOTER, true, 0);
+5566:		rc = smblib_update_jeita(chg, chg->jeita_soft_hys_thlds,
+5574:			vote(chg->fcc_votable, JEITA_ARB_VOTER, true,
+5575:						chg->jeita_soft_fcc[0]);
+5576:			vote(chg->fv_votable, JEITA_ARB_VOTER, true,
+5577:						chg->jeita_soft_fv[0]);
+5579:			vote(chg->fcc_votable, JEITA_ARB_VOTER, true,
+5580:						chg->jeita_soft_fcc[1]);
+5581:			vote(chg->fv_votable, JEITA_ARB_VOTER, true,
+5582:						chg->jeita_soft_fv[1]);
+5585:		vote(chg->chg_disable_votable, JEITA_ARB_VOTER, false, 0);
+5586:		chg->jeita_arb_flag = true;
+5587:	} else if (chg->jeita_arb_flag && !soft_jeita) {
+5590:		vote(chg->chg_disable_votable, JEITA_ARB_VOTER, true, 0);
+5597:		rc = smblib_update_jeita(chg, chg->jeita_soft_thlds,
+5603:		vote(chg->fcc_votable, JEITA_ARB_VOTER, false, 0);
+5604:		vote(chg->fv_votable, JEITA_ARB_VOTER, false, 0);
+5605:		vote(chg->chg_disable_votable, JEITA_ARB_VOTER, false, 0);
+5606:		chg->jeita_arb_flag = false;
+5610:			chg->jeita_arb_flag, soft_jeita);
+5622:	if (chg->sw_jeita_enabled) {
+5649:	if (chg->pd_active) {
+5651:			get_client_vote_locked(chg->usb_icl_votable, PD_VOTER);
+5683:	if (non_compliant && !chg->typec_legacy_use_rp_icl) {
+5711:			current_ua = chg->default_icl_ua;
+5741:	if (chg->thermal_overheat == !!therm_overheat)
+5748:	if (!chg->cp_disable_votable)
+5749:		chg->cp_disable_votable = find_votable("CP_DISABLE");
+5751:	if (chg->cp_disable_votable) {
+5752:		vote(chg->cp_disable_votable, OVERHEAT_LIMIT_VOTER,
+5754:		vote(chg->usb_icl_votable, OVERHEAT_LIMIT_VOTER,
+5758:	chg->thermal_overheat = !!therm_overheat;
+5782:	mutex_lock(&chg->irq_status_lock);
+5783:	chg->irq_status |= PULSE_SKIP_IRQ_BIT;
+5784:	mutex_unlock(&chg->irq_status_lock);
+5786:	power_supply_changed(chg->usb_main_psy);
+5796:	if (!chg->cp_disable_votable) {
+5797:		chg->cp_disable_votable = find_votable("CP_DISABLE");
+5798:		if (!chg->cp_disable_votable)
+5802:	if (chg->pd_hard_reset) {
+5803:		vote(chg->cp_disable_votable, BOOST_BACK_VOTER, true, 0);
+5819:		vote(chg->cp_disable_votable, BOOST_BACK_VOTER, false, 0);
+5847:		chg->cc_soc_ref = 0;
+5848:		chg->last_cc_soc = 0;
+5849:		alarm_start_relative(&chg->chg_termination_alarm,
+5856:		chg->cc_soc_ref = 0;
+5857:		chg->last_cc_soc = 0;
+5877:		chg->fake_dc_on = 1;  /*use for delay 1.8s*/
+5878:		chg->fake_dc_flag = 1;
+5879:		schedule_delayed_work(&chg->dc_plug_out_delay_work,
+5881:		vote(chg->awake_votable, DC_UV_AWAKE_VOTER, true, 0);
+5906:	if (chg->wa_flags & CHG_TERMINATION_WA)
+5909:	power_supply_changed(chg->batt_psy);
+5920:	if (chg->jeita_configured != JEITA_CFG_COMPLETE)
+5931:	rerun_election(chg->fcc_votable);
+5932:	power_supply_changed(chg->batt_psy);
+5943:	power_supply_changed(chg->batt_psy);
+5960:	if ((chg->wa_flags & WEAK_ADAPTER_WA)
+5963:		if (chg->aicl_max_reached) {
+5970:				chg->aicl_5v_threshold_mv);
+5973:		vote(chg->usb_icl_votable, AICL_THRESHOLD_VOTER, true, 0);
+5978:		if (chg->aicl_5v_threshold_mv > MAX_AICL_THRESHOLD_MV) {
+5980:			chg->aicl_max_reached = true;
+5985:		rc = smblib_set_charge_param(chg, &chg->param.aicl_5v_threshold,
+5986:				chg->aicl_5v_threshold_mv + AICL_STEP_MV);
+5988:			dev_err(chg->dev,
+5991:			chg->aicl_5v_threshold_mv += AICL_STEP_MV;
+5994:				&chg->param.aicl_cont_threshold,
+5995:				chg->aicl_cont_threshold_mv + AICL_STEP_MV);
+5997:			dev_err(chg->dev,
+6000:			chg->aicl_cont_threshold_mv += AICL_STEP_MV;
+6004:		if (chg->chg_param.smb_version == PMI632_SUBTYPE)
+6007:		if (chg->aicl_max_reached) {
+6010:			vote(chg->usb_icl_votable, AICL_THRESHOLD_VOTER,
+6015:			vote(chg->usb_icl_votable, AICL_THRESHOLD_VOTER,
+6019:		wdata = &chg->irq_info[USBIN_UV_IRQ].irq_data->storm_data;
+6025:	if (!chg->irq_info[SWITCHER_POWER_OK_IRQ].irq_data)
+6028:	wdata = &chg->irq_info[SWITCHER_POWER_OK_IRQ].irq_data->storm_data;
+6032:	if (!chg->qc2_unsupported_voltage &&
+6033:			!chg->qc2_unsupported &&
+6048:		chg->qc2_max_pulses = (max_pulses &
+6052:			chg->qc2_unsupported_voltage = QC2_NON_COMPLIANT_12V;
+6061:			chg->qc2_unsupported_voltage = QC2_NON_COMPLIANT_9V;
+6084:		rc = smblib_usb_pd_adapter_allowance_override(chg, !!chg->pd_active ? FORCE_5V : FORCE_NULL);
+6087:		rc = smblib_set_opt_switcher_freq(chg, chg->chg_freq.freq_5V);
+6090:		vote(chg->usb_icl_votable, QC2_UNSUPPORTED_VOTER, true,
+6092:		chg->qc2_unsupported = true;
+6107:	if (chg->mode == PARALLEL_MASTER) {
+6112:		if (chg->hw_die_temp_mitigation) {
+6133:		rc = smblib_get_charge_param(chg, &chg->param.icl_stat,
+6141:		if (settled_ua == get_effective_result(chg->usb_icl_votable))
+6144:		cancel_delayed_work_sync(&chg->icl_change_work);
+6145:		schedule_delayed_work(&chg->icl_change_work,
+6168:	if (usb_present && chg->typec_mode == POWER_SUPPLY_TYPEC_SINK_AUDIO_ADAPTER) {
+6169:		chg->real_charger_type = POWER_SUPPLY_TYPE_USB_FLOAT;
+6170:		chg->usb_psy_desc.type = POWER_SUPPLY_TYPE_USB_FLOAT;
+6171:		if ((strcmp(get_effective_client(chg->usb_icl_votable), "OTG_VOTER") == 0) &&
+6172:					(get_effective_result(chg->usb_icl_votable) == 0))
+6173:			vote(chg->usb_icl_votable, OTG_VOTER, false, 0);
+6175:		if (get_client_vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER) != 500000)
+6176:			vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER, true, 500000);
+6180:			&& (chg->typec_mode == POWER_SUPPLY_TYPEC_NONE ||
+6181:				chg->typec_mode == POWER_SUPPLY_TYPEC_NON_COMPLIANT ||
+6182:				chg->snk_debug_acc_detected == true)
+6183:			&& (chg->cc_un_compliant_detected == false)) {
+6184:		chg->cc_un_compliant_detected = true;
+6218:		vote(chg->awake_votable, CHG_AWAKE_VOTER, true, 0);
+6220:		if (chg->fcc_stepper_enable)
+6221:			vote(chg->fcc_votable, FCC_STEPPER_VOTER, false, 0);
+6223:		if (chg->wa_flags & BOOST_BACK_WA) {
+6224:			data = chg->irq_info[SWITCHER_POWER_OK_IRQ].irq_data;
+6229:				vote(chg->usb_icl_votable, BOOST_BACK_VOTER,
+6231:				vote(chg->usb_icl_votable, WEAK_CHARGER_VOTER,
+6236:		cancel_delayed_work_sync(&chg->charger_type_recheck);
+6237:		chg->recheck_charger = false;
+6238:		chg->precheck_charger_type = POWER_SUPPLY_TYPE_UNKNOWN;
+6239:		if (chg->cc_un_compliant_detected) {
+6241:			chg->cc_un_compliant_detected = false;
+6244:		vote(chg->awake_votable, CHG_AWAKE_VOTER, false, 0);
+6247:		if (chg->fcc_stepper_enable)
+6248:			vote(chg->fcc_votable, FCC_STEPPER_VOTER,
+6252:	power_supply_changed(chg->usb_psy);
+6273:	smblib_set_opt_switcher_freq(chg, vbus_rising ? chg->chg_freq.freq_5V :
+6274:						chg->chg_freq.freq_removal);
+6280:			chg->fake_usb_insertion = true;
+6284:		vote(chg->awake_votable, CHG_AWAKE_VOTER, true, 0);
+6285:		cancel_delayed_work_sync(&chg->pr_swap_detach_work);
+6286:		vote(chg->awake_votable, DETACH_DETECT_VOTER, false, 0);
+6298:		if (chg->fcc_stepper_enable)
+6299:			vote(chg->fcc_votable, FCC_STEPPER_VOTER, false, 0);
+6302:		vote(chg->awake_votable, PL_DELAY_VOTER, true, 0);
+6303:		schedule_delayed_work(&chg->pl_enable_work,
+6305:		schedule_delayed_work(&chg->charger_type_recheck,
+6307:		schedule_delayed_work(&chg->cc_un_compliant_charge_work,
+6310:		if (chg->fake_usb_insertion) {
+6311:			chg->fake_usb_insertion = false;
+6315:		cancel_delayed_work_sync(&chg->charger_type_recheck);
+6323:		if (chg->wa_flags & BOOST_BACK_WA) {
+6324:			data = chg->irq_info[SWITCHER_POWER_OK_IRQ].irq_data;
+6329:				vote(chg->usb_icl_votable, BOOST_BACK_VOTER,
+6331:				vote(chg->usb_icl_votable, WEAK_CHARGER_VOTER,
+6337:		if (chg->fcc_stepper_enable)
+6338:			vote(chg->fcc_votable, FCC_STEPPER_VOTER,
+6341:		if (chg->wa_flags & WEAK_ADAPTER_WA) {
+6342:			chg->aicl_5v_threshold_mv =
+6343:					chg->default_aicl_5v_threshold_mv;
+6344:			chg->aicl_cont_threshold_mv =
+6345:					chg->default_aicl_cont_threshold_mv;
+6348:					&chg->param.aicl_5v_threshold,
+6349:					chg->aicl_5v_threshold_mv);
+6351:					&chg->param.aicl_cont_threshold,
+6352:					chg->aicl_cont_threshold_mv);
+6353:			chg->aicl_max_reached = false;
+6355:			if (chg->chg_param.smb_version == PMI632_SUBTYPE)
+6359:			data = chg->irq_info[USBIN_UV_IRQ].irq_data;
+6364:			vote(chg->usb_icl_votable, AICL_THRESHOLD_VOTER,
+6372:		if (chg->cc_un_compliant_detected) {
+6374:			chg->cc_un_compliant_detected = false;
+6376:		chg->recheck_charger = false;
+6377:		chg->precheck_charger_type = POWER_SUPPLY_TYPE_UNKNOWN;
+6378:		vote(chg->awake_votable, CHG_AWAKE_VOTER, false, 0);
+6382:	if (chg->connector_type == POWER_SUPPLY_CONNECTOR_MICRO_USB)
+6385:	vote(chg->temp_change_irq_disable_votable, DEFAULT_VOTER,
+6388:	power_supply_changed(chg->usb_psy);
+6390:	if (chg->dual_role)
+6391:		dual_role_instance_changed(chg->dual_role);
+6401:	if (chg->pd_hard_reset)
+6440:		chg->raise_vbus_to_detect = true;
+6455:			chg->raise_vbus_to_detect = false;
+6468:		if (chg->snk_debug_acc_detected && usb_present)
+6474:			chg->is_qc_class_a = true;
+6475:			vote(chg->fcc_votable,
+6478:			chg->is_qc_class_b = true;
+6479:			if (chg->usb_psy)
+6480:				power_supply_changed(chg->usb_psy);
+6485:		if (chg->is_qc_class_a)
+6486:			vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER, true,
+6489:			vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER, true,
+6495:				dev_err(chg->dev,
+6498:		if (chg->cp_reason == POWER_SUPPLY_CP_HVDCP3)
+6501:		chg->raise_vbus_to_detect = false;
+6524:		dev_err(chg->dev, "get quick charge type faied\n");
+6535:	if ((chg->real_charger_type == POWER_SUPPLY_TYPE_USB_PD) && chg->pd_verifed) {
+6539:	if (chg->is_qc_class_b)
+6543:		if (chg->real_charger_type == adapter_cap[i].adap_type) {
+6563:	if (chg->mode == PARALLEL_MASTER)
+6564:		vote(chg->pl_enable_votable_indirect, USBIN_V_VOTER, true, 0);
+6571:		if (chg->sec_cp_present || !chg->qc_class_ab) {
+6576:				dev_err(chg->dev,
+6580:			if (!chg->detect_low_power_qc3_charger) {
+6581:				vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER, true,
+6583:				schedule_delayed_work(&chg->raise_qc3_vbus_work, 0);
+6584:				chg->detect_low_power_qc3_charger = true;
+6588:				&& !chg->qc2_unsupported) {
+6593:				vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER, true,
+6598:		if (!chg->apsd_ext_timeout &&
+6599:				!timer_pending(&chg->apsd_timer)) {
+6604:			mod_timer(&chg->apsd_timer,
+6620:			vote(chg->limited_irq_disable_votable,
+6622:			vote(chg->hdc_irq_disable_votable,
+6624:			if (!chg->raise_vbus_to_detect) {
+6625:				if (chg->is_qc_class_a)
+6626:					vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER, true,
+6628:				else if (chg->real_charger_type == POWER_SUPPLY_TYPE_USB_HVDCP)
+6629:					vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER, true,
+6632:					vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER, true,
+6637:			vote(chg->usb_icl_votable, DCP_VOTER,
+6638:				chg->dcp_icl_ua != -EINVAL, chg->dcp_icl_ua);
+6660:	if (chg->pd_active)
+6663:	if (chg->typec_mode == POWER_SUPPLY_TYPEC_SINK_AUDIO_ADAPTER) {
+6664:		vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER, true, 500000);
+6679:		vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER, true, rp_ua);
+6690:		if (!is_client_vote_enabled(chg->usb_icl_votable,
+6693:			vote(chg->usb_icl_votable, USB_PSY_VOTER, true,
+6697:		vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER, false, 0);
+6700:		if (is_client_vote_enabled(chg->usb_icl_votable,
+6702:			vote(chg->usb_icl_votable, USB_PSY_VOTER, false, 0);
+6703:		vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER, true,
+6707:		if (is_client_vote_enabled(chg->usb_icl_votable,
+6709:			vote(chg->usb_icl_votable, USB_PSY_VOTER, false, 0);
+6711:		vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER, true, rp_ua);
+6714:		if (is_client_vote_enabled(chg->usb_icl_votable,
+6716:			vote(chg->usb_icl_votable, USB_PSY_VOTER, false, 0);
+6721:		if (!chg->recheck_charger)
+6722:			vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER, true,
+6725:			vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER, true,
+6730:		vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER, true,
+6739:	if (chg->system_temp_level > 0
+6740:			&& chg->system_temp_level < (chg->thermal_levels - 1)) {
+6765:		if (chg->use_extcon)
+6767:		if (chg->typec_mode == POWER_SUPPLY_TYPEC_SINK_AUDIO_ADAPTER)
+6768:			vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER, true, 500000);
+6772:		if (chg->typec_mode == POWER_SUPPLY_TYPEC_SINK_AUDIO_ADAPTER){
+6773:			chg->real_charger_type = POWER_SUPPLY_TYPE_USB_FLOAT;
+6774:			chg->usb_psy_desc.type = POWER_SUPPLY_TYPE_USB_FLOAT;
+6775:			if ((strcmp(get_effective_client(chg->usb_icl_votable), "OTG_VOTER") == 0) &&
+6776:						(get_effective_result(chg->usb_icl_votable) == 0))
+6777:				vote(chg->usb_icl_votable, OTG_VOTER, false, 0);
+6779:			if (get_client_vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER) != 500000)
+6780:				vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER, true, 500000);
+6801:	if (chg->fake_usb_insertion)
+6805:	if (chg->pd_active)
+6815:	if ((chg->connector_type == POWER_SUPPLY_CONNECTOR_MICRO_USB)
+6817:		&& !chg->uusb_apsd_rerun_done) {
+6822:		chg->uusb_apsd_rerun_done = true;
+6848:	power_supply_changed(chg->usb_psy);
+6849:	if (chg->dual_role)
+6850:		dual_role_instance_changed(chg->dual_role);
+6870:	if (chg->lpd_reason == LPD_MOISTURE_DETECTED) {
+6878:		chg->moisture_present = false;
+6879:		power_supply_changed(chg->usb_psy);
+6891:	chg->lpd_stage = LPD_STAGE_NONE;
+6892:	chg->lpd_reason = LPD_NONE;
+6894:	if (chg->support_liquid == true) {
+6895:		schedule_work(&chg->lpd_disable_chg_work);
+6908:	if (chg->lpd_disabled)
+6930:	chg->typec_mode = smblib_get_prop_typec_mode(chg);
+6931:	if ((chg->typec_mode == POWER_SUPPLY_TYPEC_SINK_AUDIO_ADAPTER)
+6932:					&& (chg->support_liquid == true)) {
+6938:		chg->lpd_stage = LPD_STAGE_COMMIT;
+6944:		chg->lpd_reason = LPD_MOISTURE_DETECTED;
+6946:		chg->lpd_status = true;
+6948:		if (chg->support_liquid == true) {
+6949:			 vote(chg->usb_icl_votable, LIQUID_DETECTION_VOTER, true, 0);
+6950:			if (chg->batt_psy)
+6951:				power_supply_changed(chg->batt_psy);
+6953:		alarm_start_relative(&chg->lpd_recheck_timer,
+6956:		chg->moisture_present =  true;
+6957:		alarm_start_relative(&chg->lpd_recheck_timer,
+6959:		power_supply_changed(chg->usb_psy);
+6962:		chg->lpd_reason = LPD_NONE;
+6963:		chg->typec_mode = smblib_get_prop_typec_mode(chg);
+6998:		chg->real_charger_type = POWER_SUPPLY_TYPE_USB_FLOAT;
+6999:		chg->usb_psy_desc.type = POWER_SUPPLY_TYPE_USB_FLOAT;
+7000:		if (get_client_vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER) != 500000)
+7001:			vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER, true, 500000);
+7002:		vote(chg->usb_icl_votable, OTG_VOTER, false, 0);
+7003:		power_supply_changed(chg->batt_psy);
+7005:		vote(chg->usb_icl_votable, OTG_VOTER, true, 0);
+7010:	rc = smblib_set_charge_param(chg, &chg->param.freq_switcher,
+7011:					chg->chg_freq.freq_above_otg_threshold);
+7013:		dev_err(chg->dev, "Error in setting freq_boost rc=%d\n", rc);
+7015:	if (chg->use_extcon) {
+7017:		chg->otg_present = true;
+7020:	if (!chg->pr_swap_in_progress)
+7021:		chg->ok_to_pd = (!(*chg->pd_disabled) || chg->early_usb_attach)
+7022:					&& !chg->pd_not_supported;
+7030:	if (chg->pr_swap_in_progress) {
+7031:		vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER, false, 0);
+7042:	chg->typec_legacy = stat & TYPEC_LEGACY_CABLE_STATUS_BIT;
+7043:	chg->ok_to_pd = (!(chg->typec_legacy || *chg->pd_disabled)
+7044:			|| chg->early_usb_attach) && !chg->pd_not_supported;
+7047:	if (!chg->ok_to_pd)
+7053:	vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER, true, 500000);
+7054:	vote(chg->usb_icl_votable, USB_PSY_VOTER, false, 0);
+7055:	chg->ok_to_pd = false;
+7063:	vote(chg->usb_icl_votable, OTG_VOTER, false, 0);
+7065:	rc = smblib_set_charge_param(chg, &chg->param.freq_switcher,
+7066:					chg->chg_freq.freq_removal);
+7068:		dev_err(chg->dev, "Error in setting freq_removal rc=%d\n", rc);
+7070:	if (chg->use_extcon) {
+7071:		if (chg->otg_present)
+7073:		chg->otg_present = false;
+7084:	sec_charger = chg->sec_pl_present ? POWER_SUPPLY_CHARGER_SEC_PL :
+7090:		dev_err(chg->dev,
+7093:	chg->snk_debug_acc_detected = false;
+7095:	chg->qc3p5_detected = false;
+7100:	if (chg->wa_flags & BOOST_BACK_WA) {
+7101:		data = chg->irq_info[SWITCHER_POWER_OK_IRQ].irq_data;
+7105:			vote(chg->usb_icl_votable, BOOST_BACK_VOTER, false, 0);
+7106:			vote(chg->usb_icl_votable, WEAK_CHARGER_VOTER,
+7111:	cancel_delayed_work_sync(&chg->pl_enable_work);
+7112:	cancel_delayed_work_sync(&chg->raise_qc3_vbus_work);
+7115:	vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER, true,
+7117:	vote(chg->usb_icl_votable, PD_VOTER, false, 0);
+7118:	vote(chg->usb_icl_votable, USB_PSY_VOTER, false, 0);
+7119:	vote(chg->usb_icl_votable, DCP_VOTER, false, 0);
+7120:	vote(chg->usb_icl_votable, SW_QC3_VOTER, false, 0);
+7121:	vote(chg->usb_icl_votable, CTM_VOTER, false, 0);
+7122:	vote(chg->usb_icl_votable, HVDCP2_ICL_VOTER, false, 0);
+7123:	vote(chg->usb_icl_votable, CHG_TERMINATION_VOTER, false, 0);
+7124:	vote(chg->usb_icl_votable, THERMAL_THROTTLE_VOTER, false, 0);
+7127:	vote(chg->limited_irq_disable_votable, CHARGER_TYPE_VOTER,
+7129:	vote(chg->hdc_irq_disable_votable, CHARGER_TYPE_VOTER, true, 0);
+7130:	vote(chg->hdc_irq_disable_votable, HDC_IRQ_VOTER, false, 0);
+7133:	vote(chg->pl_disable_votable, PL_DELAY_VOTER, true, 0);
+7134:	vote(chg->pl_disable_votable, PL_FCC_LOW_VOTER, false, 0);
+7135:	vote(chg->pl_enable_votable_indirect, USBIN_I_VOTER, false, 0);
+7136:	vote(chg->pl_enable_votable_indirect, USBIN_V_VOTER, false, 0);
+7137:	vote(chg->awake_votable, PL_DELAY_VOTER, false, 0);
+7138:	vote(chg->awake_votable, CHG_AWAKE_VOTER, false, 0);
+7139:	vote(chg->fcc_votable, CLASSA_QC_FCC_VOTER, false, 0);
+7140:	vote(chg->usb_icl_votable, QC_A_CP_ICL_MAX_VOTER, false, 0);
+7141:	vote(chg->usb_icl_votable, QC2_UNSUPPORTED_VOTER, false, 0);
+7142:	vote(chg->usb_icl_votable, PD_VERIFED_VOTER, false, 0);
+7145:	vote(chg->usb_icl_votable, SW_THERM_REGULATION_VOTER, false, 0);
+7146:	vote(chg->pl_disable_votable, SW_THERM_REGULATION_VOTER, false, 0);
+7147:	vote(chg->dc_suspend_votable, SW_THERM_REGULATION_VOTER, false, 0);
+7148:	if (chg->cp_disable_votable)
+7149:		vote(chg->cp_disable_votable, SW_THERM_REGULATION_VOTER,
+7153:	cancel_delayed_work_sync(&chg->usbov_dbc_work);
+7154:	vote(chg->awake_votable, USBOV_DBC_VOTER, false, 0);
+7155:	chg->dbc_usbov = false;
+7157:	chg->pulse_cnt = 0;
+7158:	chg->usb_icl_delta_ua = 0;
+7159:	chg->voltage_min_uv = MICRO_5V;
+7160:	chg->voltage_max_uv = MICRO_5V;
+7161:	chg->usbin_forced_max_uv = 0;
+7162:	chg->chg_param.forced_main_fcc = 0;
+7165:	vote(chg->fcc_main_votable, MAIN_FCC_VOTER, false, 0);
+7166:	chg->adapter_cc_mode = 0;
+7167:	chg->thermal_overheat = 0;
+7168:	vote_override(chg->fcc_votable, CC_MODE_VOTER, false, 0);
+7169:	vote_override(chg->usb_icl_votable, CC_MODE_VOTER, false, 0);
+7170:	vote(chg->cp_disable_votable, OVERHEAT_LIMIT_VOTER, false, 0);
+7171:	vote(chg->usb_icl_votable, OVERHEAT_LIMIT_VOTER, false, 0);
+7175:				(u8)FLOAT_OPTIONS_MASK, chg->float_cfg);
+7180:	if (!chg->pr_swap_in_progress) {
+7186:				&chg->param.aicl_cont_threshold,
+7187:				chg->default_aicl_cont_threshold_mv);
+7196:	if (chg->qc2_unsupported_voltage) {
+7199:				chg->qc2_max_pulses);
+7211:		chg->qc2_unsupported_voltage = QC2_COMPLIANT;
+7214:	if (chg->use_extcon)
+7217:	chg->typec_legacy = false;
+7219:	del_timer_sync(&chg->apsd_timer);
+7220:	chg->apsd_ext_timeout = false;
+7222:	chg->detect_low_power_qc3_charger = false;
+7223:	chg->raise_vbus_to_detect = false;
+7224:	chg->is_qc_class_a = false;
+7225:	chg->is_qc_class_b = false;
+7226:	chg->high_vbus_detected = false;
+7227:	chg->qc2_unsupported = false;
+7228:	chg->cc_un_compliant_detected = false;
+7229:	chg->recheck_charger = false;
+7232:	if (chg->pd_verifed)
+7233:		chg->pd_verifed = false;
+7238:	vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER, true, USBIN_100MA);
+7253:		if (get_client_vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER)
+7255:			|| (chg->float_cfg & FLOAT_OPTIONS_MASK)
+7263:						chg->typec_mode, typec_mode);
+7271:	if (chg->lpd_disabled)
+7282:			&& chg->lpd_stage == LPD_STAGE_NONE) {
+7283:		chg->lpd_stage = LPD_STAGE_FLOAT;
+7284:		cancel_delayed_work_sync(&chg->lpd_ra_open_work);
+7285:		vote(chg->awake_votable, LPD_VOTER, true, 0);
+7286:		schedule_delayed_work(&chg->lpd_ra_open_work,
+7298:	if (chg->connector_type == POWER_SUPPLY_CONNECTOR_MICRO_USB) {
+7299:		if (chg->uusb_moisture_protection_enabled) {
+7304:			pm_stay_awake(chg->dev);
+7305:			schedule_work(&chg->moisture_protection_work);
+7308:		cancel_delayed_work_sync(&chg->uusb_otg_work);
+7313:		if (!chg->moisture_present) {
+7314:			vote(chg->awake_votable, OTG_DELAY_VOTER, true, 0);
+7316:			schedule_delayed_work(&chg->uusb_otg_work,
+7317:				msecs_to_jiffies(chg->otg_delay_ms));
+7323:	if (chg->pr_swap_in_progress || chg->pd_hard_reset)
+7328:	if (chg->usb_psy)
+7329:		power_supply_changed(chg->usb_psy);
+7341:	if (chg->connector_type == POWER_SUPPLY_CONNECTOR_MICRO_USB) {
+7348:	if (chg->sink_src_mode != UNATTACHED_MODE
+7349:			&& (typec_mode != chg->typec_mode))
+7351:	chg->typec_mode = typec_mode;
+7354:				smblib_typec_mode_name[chg->typec_mode]);
+7356:	power_supply_changed(chg->usb_psy);
+7357:	if (chg->dual_role)
+7358:		dual_role_instance_changed(chg->dual_role);
+7365:	if (chg->lpd_disabled)
+7368:	cancel_delayed_work_sync(&chg->lpd_detach_work);
+7369:	chg->lpd_stage = LPD_STAGE_FLOAT_CANCEL;
+7370:	cancel_delayed_work_sync(&chg->lpd_ra_open_work);
+7371:	vote(chg->awake_votable, LPD_VOTER, false, 0);
+7396:		if (chg->lpd_status)
+7397:			chg->lpd_status = false;
+7408:			chg->sink_src_mode = AUDIO_ACCESS_MODE;
+7413:			chg->sink_src_mode = SRC_MODE;
+7416:			chg->sink_src_mode = SINK_MODE;
+7422:		switch (chg->sink_src_mode) {
+7437:		if (!chg->pr_swap_in_progress) {
+7438:			chg->ok_to_pd = false;
+7439:			chg->sink_src_mode = UNATTACHED_MODE;
+7440:			chg->early_usb_attach = false;
+7448:			if (chg->dual_role)
+7453:		if (chg->lpd_stage == LPD_STAGE_FLOAT_CANCEL)
+7454:			schedule_delayed_work(&chg->lpd_detach_work,
+7465:	power_supply_changed(chg->usb_psy);
+7466:	if (chg->dual_role)
+7467:		dual_role_instance_changed(chg->dual_role);
+7481:	vote(chg->awake_votable, DCIN_AICL_VOTER, true, 0);
+7484:	mutex_lock(&chg->dcin_aicl_lock);
+7486:	rc = smblib_get_charge_param(chg, &chg->param.dc_icl, &icl);
+7490:	if (icl == chg->wls_icl_ua) {
+7496:	icl = min(chg->wls_icl_ua, icl + DCIN_ICL_STEP_UA);
+7499:	rc = smblib_set_charge_param(chg, &chg->param.dc_icl, icl);
+7503:	mutex_unlock(&chg->dcin_aicl_lock);
+7523:	mutex_lock(&chg->dcin_aicl_lock);
+7525:	rc = smblib_get_charge_param(chg, &chg->param.dc_icl, &icl);
+7534:	mutex_unlock(&chg->dcin_aicl_lock);
+7538:	mutex_unlock(&chg->dcin_aicl_lock);
+7540:	vote(chg->awake_votable, DCIN_AICL_VOTER, false, 0);
+7558:	pm_stay_awake(chg->dev);
+7559:	schedule_work(&chg->dcin_aicl_work);
+7569:	rc = smblib_get_charge_param(chg, &chg->param.dc_icl, &icl);
+7582:	if (ktime_us_delta(now, chg->dcin_uv_last_time) > (200 * 1000)) {
+7583:		chg->dcin_uv_count = 0;
+7584:	} else if (chg->dcin_uv_count == 3) {
+7588:		rc = smblib_set_charge_param(chg, &chg->param.dc_icl, icl);
+7594:		chg->dcin_uv_count = 0;
+7597:	chg->dcin_uv_last_time = now;
+7605:	mutex_lock(&chg->dcin_aicl_lock);
+7607:	chg->dcin_uv_count++;
+7609:			chg->dcin_uv_count);
+7612:	mutex_unlock(&chg->dcin_aicl_lock);
+7622:	rc = iio_read_channel_processed(chg->iio.vph_v_chan,
+7646:		dev_err(chg->dev, "Couldn't get vph_pwr  wireless_vout=%d\n",
+7651:	if (chg->flag_dc_present && val->intval) {
+7655:			dev_err(chg->dev, "Couldn't set dc voltage to 2*vph  rc=%d\n",
+7661:			dev_err(chg->dev,
+7675:	chg->power_good_en = val->intval;
+7676:	if (chg->power_good_en) {
+7677:		chg->fake_dc_on = 1;
+7678:		chg->fake_dc_flag = 0;
+7679:		chg->last_batt_stat = 0;
+7680:		cancel_delayed_work(&chg->dc_plug_out_delay_work);
+7681:		vote(chg->awake_votable, DC_UV_AWAKE_VOTER, false, 0);
+7685:		if (!chg->fake_dc_flag)
+7686:			chg->fake_dc_on = 0;
+7688:		rc = vote(chg->dc_suspend_votable, OTG_VOTER,
+7696:			dev_err(chg->dev, "Couldn't configure dc_en override rc=%d\n", rc);
+7705:			dev_err(chg->dev, "Couldn't enable dcin_pulldown rc=%d\n", rc);
+7716:			dev_err(chg->dev, "Couldn't disable dcin_pulldown rc=%d\n", rc);
+7725:			dev_err(chg->dev, "Couldn't configure dc_en override rc=%d\n", rc);
+7730:		rc = vote(chg->dc_suspend_votable, OTG_VOTER,
+7733:	power_supply_changed(chg->dc_psy);
+7734:	power_supply_changed(chg->batt_psy);
+7735:	if (chg->wls_psy)
+7736:		power_supply_changed(chg->wls_psy);
+7746:	chg->fake_dc_on = 0;  /*use for delay 1.8s*/
+7747:	chg->fake_dc_flag = 0;
+7748:	chg->last_batt_stat = 0;
+7749:	power_supply_changed(chg->dc_psy);
+7750:	vote(chg->awake_votable, DC_UV_AWAKE_VOTER, false, 0);
+7775:	chg->idtp_psy = power_supply_get_by_name("idt");
+7776:	if (!chg->idtp_psy)
+7777:		dev_err(chg->dev, "Could not get idtp psy\n");
+7790:		cancel_work_sync(&chg->dcin_aicl_work);
+7792:			chg->flag_dc_present = 1;
+7793:			vote(chg->awake_votable, DC_AWAKE_VOTER, true, 0);
+7794:			if (chg->idtp_psy) {
+7796:				power_supply_set_property(chg->idtp_psy,
+7801:		mutex_lock(&chg->dcin_aicl_lock);
+7802:		rc = smblib_set_charge_param(chg, &chg->param.dc_icl,
+7804:		mutex_unlock(&chg->dcin_aicl_lock);
+7811:		if (chg->sec_cp_present) {
+7815:				dev_err(chg->dev, "Couldn't set dc voltage to 2*vph  rc=%d\n",
+7822:				dev_err(chg->dev, "Couldn't enable secondary chargers  rc=%d\n",
+7824:			mutex_unlock(&chg->smb_lock);
+7835:				dev_err(chg->dev, "Couldn't set dc voltage to 5 V rc=%d\n",
+7840:		vote(chg->awake_votable, DC_AWAKE_VOTER, false, 0);
+7841:		vote(chg->dc_icl_votable, DCIN_ADAPTER_VOTER, true, 100000);
+7842:		chg->flag_dc_present = 0;
+7843:		chg->cp_reason = POWER_SUPPLY_CP_NONE;
+7844:		sec_charger = chg->sec_pl_present ?
+7851:			dev_err(chg->dev,
+7855:		if (chg->idtp_psy) {
+7857:			power_supply_set_property(chg->idtp_psy,
+7861:		if (chg->cp_reason == POWER_SUPPLY_CP_WIRELESS) {
+7862:			sec_charger = chg->sec_pl_present ?
+7868:				dev_err(chg->dev, "Couldn't disable secondary charger rc=%d\n",
+7872:		vote(chg->dc_suspend_votable, CHG_TERMINATION_VOTER, false, 0);
+7874:		chg->last_wls_vout = 0;
+7877:	power_supply_changed(chg->dc_psy);
+7878:	if (chg->wls_psy)
+7879:		power_supply_changed(chg->wls_psy);
+7882:			dcin_present, vbus_present, chg->cp_reason);
+7892:	chg->is_hdc = true;
+7898:	vote(chg->hdc_irq_disable_votable, HDC_IRQ_VOTER, true, 0);
+7900:	schedule_delayed_work(&chg->clear_hdc_work, msecs_to_jiffies(60));
+7910:	vote(chg->usb_icl_votable, BOOST_BACK_VOTER, false, 0);
+7911:	vote(chg->awake_votable, BOOST_BACK_VOTER, false, 0);
+7925:	if (!(chg->wa_flags & BOOST_BACK_WA))
+7935:	usb_icl = get_effective_result(chg->usb_icl_votable);
+7944:		if (!is_client_vote_enabled(chg->usb_icl_votable,
+7948:				*chg->weak_chg_icl_ua / 1000);
+7949:			vote(chg->usb_icl_votable, WEAK_CHARGER_VOTER,
+7950:					true, *chg->weak_chg_icl_ua);
+7959:			vote(chg->usb_icl_votable, BOOST_BACK_VOTER, true, 0);
+7960:			vote(chg->awake_votable, BOOST_BACK_VOTER, true, 0);
+7966:			schedule_delayed_work(&chg->bb_removal_work,
+7981:	if (chg->wa_flags & SW_THERM_REGULATION_WA) {
+7982:		cancel_delayed_work_sync(&chg->thermal_regulation_work);
+7983:		vote(chg->awake_votable, SW_THERM_REGULATION_VOTER, true, 0);
+7984:		schedule_delayed_work(&chg->thermal_regulation_work, 0);
+7987:	power_supply_changed(chg->batt_psy);
+8020:	vote(chg->usb_icl_votable, DIE_TEMP_VOTER,
+8044:	chg->dbc_usbov = false;
+8045:	vote(chg->awake_votable, USBOV_DBC_VOTER, false, 0);
+8058:	if (!(chg->wa_flags & USBIN_OV_WA))
+8074:		chg->dbc_usbov = true;
+8075:		vote(chg->awake_votable, USBOV_DBC_VOTER, true, 0);
+8076:		schedule_delayed_work(&chg->usbov_dbc_work,
+8079:		cancel_delayed_work_sync(&chg->usbov_dbc_work);
+8080:		chg->dbc_usbov = false;
+8081:		vote(chg->awake_votable, USBOV_DBC_VOTER, false, 0);
+8085:				chg->dbc_usbov);
+8097:	val->intval = chg->pr_swap_in_progress;
+8109:	chg->pr_swap_in_progress = val->intval;
+8112:	if (!chg->pr_swap_in_progress) {
+8113:		cancel_delayed_work_sync(&chg->pr_swap_detach_work);
+8114:		vote(chg->awake_votable, DETACH_DETECT_VOTER, true, 0);
+8115:		schedule_delayed_work(&chg->pr_swap_detach_work,
+8131:	if (chg->pr_swap_in_progress) {
+8165:		chg->power_role = POWER_SUPPLY_TYPEC_PR_DUAL;
+8167:				chg->power_role);
+8181:	spin_lock(&chg->typec_pr_lock);
+8182:	if (chg->pr_lock_in_progress) {
+8185:		chg->pr_lock_in_progress = false;
+8187:	spin_unlock(&chg->typec_pr_lock);
+8209:	vote(chg->awake_votable, DETACH_DETECT_VOTER, false, 0);
+8226:	if (chg->otg_present != otg)
+8231:	chg->otg_present = otg;
+8233:		chg->boost_current_ua = 0;
+8235:	rc = smblib_set_charge_param(chg, &chg->param.freq_switcher,
+8236:				otg ? chg->chg_freq.freq_below_otg_threshold
+8237:					: chg->chg_freq.freq_removal);
+8239:		dev_err(chg->dev, "Error in setting freq_boost rc=%d\n", rc);
+8243:	power_supply_changed(chg->usb_psy);
+8246:	vote(chg->awake_votable, OTG_DELAY_VOTER, false, 0);
+8256:	if (chg->batt_psy)
+8257:		power_supply_changed(chg->batt_psy);
+8267:	if (chg->smb_temp_max == -EINVAL) {
+8270:					&chg->smb_temp_max);
+8272:			dev_err(chg->dev, "Couldn't get charger_temp_max rc=%d\n",
+8278:	prop_val.intval = chg->smb_temp_max;
+8279:	rc = power_supply_set_property(chg->pl.psy,
+8283:		dev_err(chg->dev, "Couldn't set POWER_SUPPLY_PROP_CHARGER_TEMP_MAX rc=%d\n",
+8288:	if (chg->sec_chg_selected == POWER_SUPPLY_CHARGER_SEC_CP)
+8300:	chg->is_hdc = 0;
+8301:	vote(chg->hdc_irq_disable_votable, HDC_IRQ_VOTER, false, 0);
+8310:	rc = smblib_get_charge_param(chg, &chg->param.icl_stat, &settled_ua);
+8316:	power_supply_changed(chg->usb_main_psy);
+8327:	vote(chg->pl_disable_votable, PL_DELAY_VOTER, false, 0);
+8328:	vote(chg->awake_votable, PL_DELAY_VOTER, false, 0);
+8361:	vote(chg->awake_votable, MOISTURE_VOTER, true, 0);
+8367:	rc = smblib_write(chg, ((chg->chg_param.smb_version == PMI632_SUBTYPE) ?
+8417:		alarm_start_relative(&chg->moisture_protection_alarm,
+8421:		rc = alarm_cancel(&chg->moisture_protection_alarm);
+8427:	vote(chg->awake_votable, MOISTURE_VOTER, false, 0);
+8440:	pm_stay_awake(chg->dev);
+8441:	schedule_work(&chg->moisture_protection_work);
+8457:	vote(chg->awake_votable, CHG_TERMINATION_VOTER, true, 0);
+8466:		vote(chg->usb_icl_votable, CHG_TERMINATION_VOTER, false, 0);
+8467:		vote(chg->dc_suspend_votable, CHG_TERMINATION_VOTER, false, 0);
+8482:	if (pval.intval != chg->charge_full_cc || !chg->cc_soc_ref) {
+8483:		chg->charge_full_cc = pval.intval;
+8489:		chg->cc_soc_ref = pval.intval;
+8501:	if (chg->last_cc_soc && pval.intval > (chg->last_cc_soc + 100)) {
+8503:		chg->cc_soc_ref = pval.intval;
+8505:				chg->last_cc_soc, pval.intval);
+8507:	chg->last_cc_soc = pval.intval;
+8514:	if (pval.intval < DIV_ROUND_CLOSEST(chg->cc_soc_ref * 10050, 10000)) {
+8515:		vote(chg->usb_icl_votable, CHG_TERMINATION_VOTER, false, 0);
+8516:		vote(chg->dc_suspend_votable, CHG_TERMINATION_VOTER, false, 0);
+8518:	} else if (pval.intval > DIV_ROUND_CLOSEST(chg->cc_soc_ref * 10075,
+8521:			vote(chg->usb_icl_votable, CHG_TERMINATION_VOTER,
+8524:			vote(chg->dc_suspend_votable, CHG_TERMINATION_VOTER,
+8530:			pval.intval, chg->cc_soc_ref, delay);
+8531:	alarm_start_relative(&chg->chg_termination_alarm, ms_to_ktime(delay));
+8533:	vote(chg->awake_votable, CHG_TERMINATION_VOTER, false, 0);
+8546:	pm_stay_awake(chg->dev);
+8547:	schedule_work(&chg->chg_termination_work);
+8559:	chg->apsd_ext_timeout = true;
+8566:	struct device_node *node = chg->dev->of_node;
+8579:	if (!chg->bms_psy)
+8615:				chg->jeita_soft_thlds, 2);
+8617:		rc = smblib_update_jeita(chg, chg->jeita_soft_thlds,
+8627:					chg->jeita_soft_hys_thlds, 2);
+8635:	chg->jeita_configured = JEITA_CFG_COMPLETE;
+8638:	chg->jeita_soft_fcc[0] = chg->jeita_soft_fcc[1] = -EINVAL;
+8639:	chg->jeita_soft_fv[0] = chg->jeita_soft_fv[1] = -EINVAL;
+8642:	of_property_read_u32(pnode, "qcom,fastchg-current-ma", &max_fcc_ma);
+8646:		smblib_err(chg, "Incorrect fastchg-current-ma or max-voltage-uv\n");
+8664:	chg->jeita_soft_fcc[0] = tmp[0];
+8665:	chg->jeita_soft_fcc[1] = tmp[1];
+8680:	chg->jeita_soft_fv[0] = tmp[0];
+8681:	chg->jeita_soft_fv[1] = tmp[1];
+8690:	chg->jeita_configured = JEITA_CFG_COMPLETE;
+8694:	chg->jeita_configured = JEITA_CFG_FAILURE;
+8705:	if (chg->pr_swap_in_progress || chg->pd_hard_reset) {
+8706:		chg->lpd_stage = LPD_STAGE_NONE;
+8710:	if (chg->lpd_stage != LPD_STAGE_FLOAT)
+8723:		chg->lpd_stage = LPD_STAGE_NONE;
+8724:		chg->lpd_status = false;
+8726:		if (chg->support_liquid == true) {
+8727:			 vote(chg->usb_icl_votable, LIQUID_DETECTION_VOTER, false, 0);
+8728:			if (chg->batt_psy)
+8729:				power_supply_changed(chg->batt_psy);
+8734:	chg->lpd_stage = LPD_STAGE_COMMIT;
+8758:		chg->lpd_reason = LPD_MOISTURE_DETECTED;
+8760:		chg->lpd_status = true;
+8762:		chg->moisture_present =  true;
+8764:		if (chg->support_liquid == true) {
+8765:			vote(chg->usb_icl_votable, LIQUID_DETECTION_VOTER, true, 0);
+8766:			if (chg->batt_psy)
+8767:				power_supply_changed(chg->batt_psy);
+8788:		chg->lpd_reason = LPD_FLOATING_CABLE;
+8792:	alarm_start_relative(&chg->lpd_recheck_timer, ms_to_ktime(15000));
+8794:	vote(chg->awake_votable, LPD_VOTER, false, 0);
+8802:	vote(chg->usb_icl_votable, LIQUID_DETECTION_VOTER, false, 0);
+8803:	if (chg->batt_psy)
+8804:		power_supply_changed(chg->batt_psy);
+8812:	if (chg->lpd_stage == LPD_STAGE_FLOAT_CANCEL)
+8813:		chg->lpd_stage = LPD_STAGE_NONE;
+8825:			chg->typec_mode, last_charger_type, chg->real_charger_type);
+8827:	if (last_charger_type != chg->real_charger_type)
+8829:	last_charger_type = chg->real_charger_type;
+8831:	if (chg->real_charger_type == POWER_SUPPLY_TYPE_USB_HVDCP_3 ||
+8832:			chg->real_charger_type == POWER_SUPPLY_TYPE_USB_HVDCP ||
+8833:			chg->pd_active || (check_count >= TYPE_RECHECK_COUNT) ||
+8834:			((chg->real_charger_type == POWER_SUPPLY_TYPE_USB_FLOAT) &&
+8835:				(chg->typec_mode == POWER_SUPPLY_TYPEC_SINK_AUDIO_ADAPTER))) {
+8845:	if (!chg->recheck_charger)
+8846:		chg->precheck_charger_type = chg->real_charger_type;
+8847:	chg->recheck_charger = true;
+8849:	if (chg->real_charger_type == POWER_SUPPLY_TYPE_USB_FLOAT) {
+8860:	schedule_delayed_work(&chg->charger_type_recheck,
+8905:	if (chg->dr_mode != mode) {
+8906:		chg->dr_mode = mode;
+8908:					dr_mode_text[chg->dr_mode]);
+8919:	if (!chg->use_extcon)
+8942:	mutex_lock(&chg->dr_lock);
+8944:	switch (chg->dr_mode) {
+8946:		if (chg->typec_mode < POWER_SUPPLY_TYPEC_SOURCE_DEFAULT) {
+8955:		chg->pr_swap_in_progress = false;
+8958:		if (chg->typec_mode >= POWER_SUPPLY_TYPEC_SOURCE_DEFAULT ||
+8959:				chg->typec_mode == POWER_SUPPLY_TYPEC_NONE) {
+8972:		chg->pr_swap_in_progress = false;
+8979:	mutex_unlock(&chg->dr_lock);
+8980:	vote(chg->awake_votable, DR_SWAP_VOTER, false, 0);
+8987:	chg->fcc_votable = find_votable("FCC");
+8988:	if (chg->fcc_votable == NULL) {
+8994:	chg->fcc_main_votable = find_votable("FCC_MAIN");
+8995:	if (chg->fcc_main_votable == NULL) {
+9001:	chg->fv_votable = find_votable("FV");
+9002:	if (chg->fv_votable == NULL) {
+9008:	chg->usb_icl_votable = find_votable("USB_ICL");
+9009:	if (chg->usb_icl_votable == NULL) {
+9015:	chg->pl_disable_votable = find_votable("PL_DISABLE");
+9016:	if (chg->pl_disable_votable == NULL) {
+9022:	chg->pl_enable_votable_indirect = find_votable("PL_ENABLE_INDIRECT");
+9023:	if (chg->pl_enable_votable_indirect == NULL) {
+9031:	vote(chg->pl_disable_votable, PL_DELAY_VOTER, true, 0);
+9033:	chg->smb_override_votable = create_votable("SMB_EN_OVERRIDE",
+9036:	if (IS_ERR(chg->smb_override_votable)) {
+9037:		rc = PTR_ERR(chg->smb_override_votable);
+9038:		chg->smb_override_votable = NULL;
+9042:	chg->dc_suspend_votable = create_votable("DC_SUSPEND", VOTE_SET_ANY,
+9045:	if (IS_ERR(chg->dc_suspend_votable)) {
+9046:		rc = PTR_ERR(chg->dc_suspend_votable);
+9047:		chg->dc_suspend_votable = NULL;
+9051:	chg->dc_icl_votable = create_votable("DC_ICL", VOTE_MIN,
+9054:	if (IS_ERR(chg->dc_icl_votable)) {
+9055:		rc = PTR_ERR(chg->dc_icl_votable);
+9059:	chg->awake_votable = create_votable("AWAKE", VOTE_SET_ANY,
+9062:	if (IS_ERR(chg->awake_votable)) {
+9063:		rc = PTR_ERR(chg->awake_votable);
+9064:		chg->awake_votable = NULL;
+9068:	chg->chg_disable_votable = create_votable("CHG_DISABLE", VOTE_SET_ANY,
+9071:	if (IS_ERR(chg->chg_disable_votable)) {
+9072:		rc = PTR_ERR(chg->chg_disable_votable);
+9073:		chg->chg_disable_votable = NULL;
+9077:	chg->limited_irq_disable_votable = create_votable(
+9082:	if (IS_ERR(chg->limited_irq_disable_votable)) {
+9083:		rc = PTR_ERR(chg->limited_irq_disable_votable);
+9084:		chg->limited_irq_disable_votable = NULL;
+9088:	chg->hdc_irq_disable_votable = create_votable("USB_HDC_IRQ_DISABLE",
+9092:	if (IS_ERR(chg->hdc_irq_disable_votable)) {
+9093:		rc = PTR_ERR(chg->hdc_irq_disable_votable);
+9094:		chg->hdc_irq_disable_votable = NULL;
+9098:	chg->icl_irq_disable_votable = create_votable("USB_ICL_IRQ_DISABLE",
+9102:	if (IS_ERR(chg->icl_irq_disable_votable)) {
+9103:		rc = PTR_ERR(chg->icl_irq_disable_votable);
+9104:		chg->icl_irq_disable_votable = NULL;
+9108:	chg->temp_change_irq_disable_votable = create_votable(
+9111:	if (IS_ERR(chg->temp_change_irq_disable_votable)) {
+9112:		rc = PTR_ERR(chg->temp_change_irq_disable_votable);
+9113:		chg->temp_change_irq_disable_votable = NULL;
+9122:	if (chg->dc_suspend_votable)
+9123:		destroy_votable(chg->dc_suspend_votable);
+9124:	if (chg->usb_icl_votable)
+9125:		destroy_votable(chg->usb_icl_votable);
+9126:	if (chg->awake_votable)
+9127:		destroy_votable(chg->awake_votable);
+9128:	if (chg->chg_disable_votable)
+9129:		destroy_votable(chg->chg_disable_votable);
+9134:	if (!IS_ERR_OR_NULL(chg->iio.usbin_v_chan))
+9135:		iio_channel_release(chg->iio.usbin_v_chan);
+9136:	if (!IS_ERR_OR_NULL(chg->iio.usbin_i_chan))
+9137:		iio_channel_release(chg->iio.usbin_i_chan);
+9138:	if (!IS_ERR_OR_NULL(chg->iio.temp_chan))
+9139:		iio_channel_release(chg->iio.temp_chan);
+9140:	if (!IS_ERR_OR_NULL(chg->iio.sbux_chan))
+9141:		iio_channel_release(chg->iio.sbux_chan);
+9142:	if (!IS_ERR_OR_NULL(chg->iio.vph_v_chan))
+9143:		iio_channel_release(chg->iio.vph_v_chan);
+9144:	if (!IS_ERR_OR_NULL(chg->iio.die_temp_chan))
+9145:		iio_channel_release(chg->iio.die_temp_chan);
+9146:	if (!IS_ERR_OR_NULL(chg->iio.connector_temp_chan))
+9147:		iio_channel_release(chg->iio.connector_temp_chan);
+9148:	if (!IS_ERR_OR_NULL(chg->iio.skin_temp_chan))
+9149:		iio_channel_release(chg->iio.skin_temp_chan);
+9150:	if (!IS_ERR_OR_NULL(chg->iio.smb_temp_chan))
+9151:		iio_channel_release(chg->iio.smb_temp_chan);
+9159:	mutex_init(&chg->smb_lock);
+9160:	mutex_init(&chg->irq_status_lock);
+9161:	mutex_init(&chg->dpdm_lock);
+9162:	spin_lock_init(&chg->typec_pr_lock);
+9163:	mutex_init(&chg->dcin_aicl_lock);
+9164:	INIT_WORK(&chg->bms_update_work, bms_update_work);
+9165:	INIT_WORK(&chg->pl_update_work, pl_update_work);
+9166:	INIT_WORK(&chg->jeita_update_work, jeita_update_work);
+9167:	INIT_WORK(&chg->dcin_aicl_work, dcin_aicl_work);
+9168:	INIT_WORK(&chg->lpd_disable_chg_work, smblib_lpd_disable_chg_work);
+9169:	INIT_DELAYED_WORK(&chg->clear_hdc_work, clear_hdc_work);
+9170:	INIT_DELAYED_WORK(&chg->icl_change_work, smblib_icl_change_work);
+9171:	INIT_DELAYED_WORK(&chg->pl_enable_work, smblib_pl_enable_work);
+9172:	INIT_DELAYED_WORK(&chg->uusb_otg_work, smblib_uusb_otg_work);
+9173:	INIT_DELAYED_WORK(&chg->bb_removal_work, smblib_bb_removal_work);
+9174:	INIT_DELAYED_WORK(&chg->lpd_ra_open_work, smblib_lpd_ra_open_work);
+9175:	INIT_DELAYED_WORK(&chg->lpd_detach_work, smblib_lpd_detach_work);
+9176:	INIT_DELAYED_WORK(&chg->raise_qc3_vbus_work, smblib_raise_qc3_vbus_work);
+9177:	INIT_DELAYED_WORK(&chg->charger_type_recheck, smblib_charger_type_recheck);
+9178:	INIT_DELAYED_WORK(&chg->cc_un_compliant_charge_work,
+9180:	INIT_DELAYED_WORK(&chg->reg_work, smblib_reg_work);
+9181:	INIT_DELAYED_WORK(&chg->thermal_regulation_work,
+9183:	INIT_DELAYED_WORK(&chg->dc_plug_out_delay_work, smblib_dc_plug_out_work);
+9184:	INIT_DELAYED_WORK(&chg->usbov_dbc_work, smblib_usbov_dbc_work);
+9185:	INIT_DELAYED_WORK(&chg->role_reversal_check,
+9187:	INIT_DELAYED_WORK(&chg->pr_swap_detach_work,
+9189:	INIT_DELAYED_WORK(&chg->pr_lock_clear_work,
+9191:	setup_timer(&chg->apsd_timer, apsd_timer_cb, (unsigned long)chg);
+9193:	if (chg->wa_flags & CHG_TERMINATION_WA) {
+9194:		INIT_WORK(&chg->chg_termination_work,
+9198:			alarm_init(&chg->chg_termination_alarm, ALARM_BOOTTIME,
+9206:	if (chg->uusb_moisture_protection_enabled) {
+9207:		INIT_WORK(&chg->moisture_protection_work,
+9211:			alarm_init(&chg->moisture_protection_alarm,
+9220:		alarm_init(&chg->dcin_aicl_alarm, ALARM_REALTIME,
+9227:	chg->fake_capacity = -EINVAL;
+9228:	chg->fake_input_current_limited = -EINVAL;
+9229:	chg->fake_batt_status = -EINVAL;
+9230:	chg->sink_src_mode = UNATTACHED_MODE;
+9231:	chg->jeita_configured = false;
+9232:	chg->sec_chg_selected = POWER_SUPPLY_CHARGER_SEC_NONE;
+9233:	chg->cp_reason = POWER_SUPPLY_CP_NONE;
+9234:	chg->thermal_status = TEMP_BELOW_RANGE;
+9235:	chg->batt_temp_irq_enabled = false;
+9236:	chg->dr_mode = DUAL_ROLE_PROP_MODE_NONE;
+9237:	chg->typec_irq_en = true;
+9239:	switch (chg->mode) {
+9241:		rc = qcom_batt_init(&chg->chg_param);
+9248:		rc = qcom_step_chg_init(chg->dev, chg->step_chg_enabled,
+9249:						chg->sw_jeita_enabled, false);
+9263:		chg->bms_psy = power_supply_get_by_name("bms");
+9264:		//chg->idtp_psy = power_supply_get_by_name("idt");
+9266:		if (chg->sec_pl_present) {
+9267:			chg->pl.psy = power_supply_get_by_name("parallel");
+9268:			if (chg->pl.psy) {
+9269:				if (chg->sec_chg_selected
+9279:				if (chg->smb_temp_max == -EINVAL) {
+9282:						&chg->smb_temp_max);
+9284:						dev_err(chg->dev, "Couldn't get charger_temp_max rc=%d\n",
+9290:				prop_val.intval = chg->smb_temp_max;
+9291:				rc = power_supply_set_property(chg->pl.psy,
+9295:					dev_err(chg->dev, "Couldn't set POWER_SUPPLY_PROP_CHARGER_TEMP_MAX rc=%d\n",
+9312:		smblib_err(chg, "Unsupported mode %d\n", chg->mode);
+9321:	switch (chg->mode) {
+9323:		if (chg->uusb_moisture_protection_enabled) {
+9324:			alarm_cancel(&chg->moisture_protection_alarm);
+9325:			cancel_work_sync(&chg->moisture_protection_work);
+9327:		if (chg->wa_flags & CHG_TERMINATION_WA) {
+9328:			alarm_cancel(&chg->chg_termination_alarm);
+9329:			cancel_work_sync(&chg->chg_termination_work);
+9331:		del_timer_sync(&chg->apsd_timer);
+9332:		cancel_work_sync(&chg->bms_update_work);
+9333:		cancel_work_sync(&chg->jeita_update_work);
+9334:		cancel_work_sync(&chg->pl_update_work);
+9335:		cancel_work_sync(&chg->dcin_aicl_work);
+9336:		cancel_delayed_work_sync(&chg->clear_hdc_work);
+9337:		cancel_delayed_work_sync(&chg->icl_change_work);
+9338:		cancel_delayed_work_sync(&chg->pl_enable_work);
+9339:		cancel_delayed_work_sync(&chg->uusb_otg_work);
+9340:		cancel_delayed_work_sync(&chg->bb_removal_work);
+9341:		cancel_delayed_work_sync(&chg->lpd_ra_open_work);
+9342:		cancel_delayed_work_sync(&chg->lpd_detach_work);
+9343:		cancel_delayed_work_sync(&chg->raise_qc3_vbus_work);
+9344:		cancel_delayed_work_sync(&chg->charger_type_recheck);
+9345:		cancel_delayed_work_sync(&chg->cc_un_compliant_charge_work);
+9346:		cancel_delayed_work_sync(&chg->reg_work);
+9347:		cancel_delayed_work_sync(&chg->thermal_regulation_work);
+9348:		cancel_delayed_work_sync(&chg->usbov_dbc_work);
+9349:		cancel_delayed_work_sync(&chg->role_reversal_check);
+9350:		cancel_delayed_work_sync(&chg->pr_swap_detach_work);
+9351:		power_supply_unreg_notifier(&chg->nb);
+9359:		smblib_err(chg, "Unsupported mode %d\n", chg->mode);
