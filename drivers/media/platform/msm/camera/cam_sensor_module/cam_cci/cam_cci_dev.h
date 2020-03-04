@@ -31,9 +31,9 @@
 #include <media/v4l2-event.h>
 #include <media/v4l2-ioctl.h>
 #include <media/v4l2-subdev.h>
-#include <cam_sensor_cmn_header.h>
+#include "../cam_sensor_utils/cam_sensor_cmn_header.h"
 #include <cam_io_util.h>
-#include <cam_sensor_util.h>
+#include "../cam_sensor_utils/cam_sensor_util.h"
 #include <cam_subdev.h>
 #include <cam_cpas_api.h>
 #include "cam_cci_hwreg.h"
@@ -46,7 +46,7 @@
 #define CYCLES_PER_MICRO_SEC_DEFAULT 4915
 #define CCI_MAX_DELAY 1000000
 
-#define CCI_TIMEOUT msecs_to_jiffies(500)
+#define CCI_TIMEOUT msecs_to_jiffies(2000)
 
 #define NUM_MASTERS 2
 #define NUM_QUEUES 2
@@ -68,7 +68,7 @@
 /* Max bytes that can be read per CCI read transaction */
 #define CCI_READ_MAX 256
 #define CCI_I2C_READ_MAX_RETRIES 3
-#define CCI_I2C_MAX_READ 8192
+#define CCI_I2C_MAX_READ 12288
 #define CCI_I2C_MAX_WRITE 8192
 #define CCI_I2C_MAX_BYTE_COUNT 65535
 

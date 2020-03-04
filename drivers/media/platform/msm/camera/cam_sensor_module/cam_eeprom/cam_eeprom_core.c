@@ -921,7 +921,7 @@ static int32_t cam_eeprom_pkt_parse(struct cam_eeprom_ctrl_t *e_ctrl, void *arg)
 	}
 
 	if (cam_mem_put_cpu_buf(dev_config.packet_handle))
-		CAM_WARN(CAM_EEPROM, "Put cpu buffer failed : 0x%x",
+		CAM_WARN(CAM_EEPROM, "Put cpu buffer failed : 0x%llx",
 			dev_config.packet_handle);
 
 	return rc;
@@ -931,6 +931,17 @@ power_down:
 memdata_free:
 	vfree(e_ctrl->cal_data.mapdata);
 error:
+	/*Try to release the device handle when EEPROM read failed*/
+	if (e_ctrl->cam_eeprom_state >= CAM_EEPROM_ACQUIRE) {
+		int ret = 0;
+		ret = cam_destroy_device_hdl(e_ctrl->bridge_intf.device_hdl);
+		if (ret < 0)
+			CAM_ERR(CAM_EEPROM, "destroying the device hdl");
+
+		e_ctrl->bridge_intf.device_hdl = -1;
+		e_ctrl->bridge_intf.link_hdl = -1;
+		e_ctrl->bridge_intf.session_hdl = -1;
+	}
 	kfree(power_info->power_setting);
 	kfree(power_info->power_down_setting);
 	power_info->power_setting = NULL;
@@ -941,7 +952,7 @@ error:
 	e_ctrl->cam_eeprom_state = CAM_EEPROM_ACQUIRE;
 release_buf:
 	if (cam_mem_put_cpu_buf(dev_config.packet_handle))
-		CAM_WARN(CAM_EEPROM, "Put cpu buffer failed : 0x%x",
+		CAM_WARN(CAM_EEPROM, "Put cpu buffer failed : 0x%llx",
 			dev_config.packet_handle);
 
 	return rc;
