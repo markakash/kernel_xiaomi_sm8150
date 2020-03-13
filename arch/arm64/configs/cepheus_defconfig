@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/arm64 4.14.169 Kernel Configuration
+# Linux/arm64 4.14.173 Kernel Configuration
 #
 CONFIG_ARM64=y
 CONFIG_64BIT=y
@@ -4642,6 +4642,7 @@ CONFIG_QCOM_DCC_V2=y
 CONFIG_QCOM_SECURE_BUFFER=y
 # CONFIG_MSM_REMOTEQDSS is not set
 CONFIG_ICNSS=y
+# CONFIG_CNSS_TIMESYNC is not set
 # CONFIG_ICNSS_DEBUG is not set
 CONFIG_ICNSS_QMI=y
 CONFIG_QCOM_EUD=y
