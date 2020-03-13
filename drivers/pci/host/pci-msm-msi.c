@@ -117,7 +117,7 @@ static bool msm_msi_snps_handler(struct irq_desc *desc)
 	for (i = 0; status; i++, status >>= 1)
 		if (status & 0x1) {
 				res = generic_handle_irq(
-						msi_grp->irqs[index].virq);
+						msi_grp->irqs[i].virq);
 				handled += (res == 1);
 			}
 
