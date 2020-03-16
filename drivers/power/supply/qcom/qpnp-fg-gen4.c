@@ -1,5 +1,4 @@
-/* Copyright (c) 2018-2019, The Linux Foundation. All rights reserved.
- * Copyright (C) 2019 XiaoMi, Inc.
+/* Copyright (c) 2018-2020, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -318,7 +317,7 @@ struct bias_config {
 	int	bias_kohms;
 };
 
-static int fg_gen4_debug_mask = FG_STATUS | FG_IRQ;
+static int fg_gen4_debug_mask = 0;
 module_param_named(
 	debug_mask, fg_gen4_debug_mask, int, 0600
 );
@@ -2543,14 +2542,14 @@ static int fg_gen4_update_maint_soc(struct fg_dev *fg)
 		goto out;
 	}
 
-	if (msoc > fg->maint_soc) {
+	if (msoc >= fg->maint_soc) {
 		/*
 		 * When the monotonic SOC goes above maintenance SOC, we should
 		 * stop showing the maintenance SOC.
 		 */
 		fg->delta_soc = 0;
 		fg->maint_soc = 0;
-	} else if (fg->maint_soc && msoc <= fg->last_msoc) {
+	} else if (fg->maint_soc && msoc < fg->last_msoc) {
 		/* MSOC is decreasing. Decrease maintenance SOC as well */
 		fg->maint_soc -= 1;
 		if (!(msoc % 10)) {
@@ -3976,7 +3975,6 @@ static void pl_enable_work(struct work_struct *work)
 
 static void vbat_sync_work(struct work_struct *work)
 {
-	pr_err("sys_sync:vbat_sync_work\n");
 	sys_sync();
 }
 
@@ -4043,13 +4041,11 @@ static void status_change_work(struct work_struct *work)
 		fg->charge_status, fg->charge_done,
 		(input_present & (!input_suspend)));
 
-	if (fg->charge_status != fg->prev_charge_status) {
-		batt_soc_cp = div64_u64((u64)(u32)batt_soc * CENTI_FULL_SOC,
-					BATT_SOC_32BIT);
-		cap_learning_update(chip->cl, batt_temp, batt_soc_cp,
+	batt_soc_cp = div64_u64((u64)(u32)batt_soc * CENTI_FULL_SOC,
+				BATT_SOC_32BIT);
+	cap_learning_update(chip->cl, batt_temp, batt_soc_cp,
 			fg->charge_status, fg->charge_done, input_present,
 			qnovo_en);
-	}
 
 	rc = fg_gen4_charge_full_update(fg);
 	if (rc < 0)
@@ -4085,7 +4081,6 @@ static void status_change_work(struct work_struct *work)
 		pr_err("Failed to validate SOC scale mode, rc=%d\n", rc);
 
 	ttf_update(chip->ttf, input_present);
-	fg->prev_charge_status = fg->charge_status;
 out:
 	fg_dbg(fg, FG_STATUS, "charge_status:%d charge_type:%d charge_done:%d\n",
 		fg->charge_status, fg->charge_type, fg->charge_done);
@@ -5798,11 +5793,7 @@ static void soc_work_fn(struct work_struct *work)
 {
 	struct fg_dev *fg = container_of(work,
 				struct fg_dev, soc_work.work);
-	struct fg_gen4_chip *chip = container_of(fg,
-				struct fg_gen4_chip, fg);
-	int msoc = 0, soc = 0, curr_ua = 0, volt_uv = 0, temp = 0;
-	int esr_uohms = 0;
-	int cycle_count;
+	int soc = 0, temp = 0;
 	int rc;
 	static int prev_soc = -EINVAL;
 
@@ -5810,38 +5801,9 @@ static void soc_work_fn(struct work_struct *work)
 	if (rc < 0)
 		pr_err("Error in getting capacity, rc=%d\n", rc);
 
-	rc = fg_get_msoc_raw(fg, &msoc);
-	if (rc < 0)
-		pr_err("Error in getting msoc, rc=%d\n", rc);
-
-	rc = fg_get_battery_resistance(fg, &esr_uohms);
-	if (rc < 0)
-		pr_err("Error in getting esr_uohms, rc=%d\n", rc);
-
-	fg_get_battery_current(fg, &curr_ua);
-	if (rc < 0)
-		pr_err("failed to get current, rc=%d\n", rc);
-
-	rc = fg_get_battery_voltage(fg, &volt_uv);
-	if (rc < 0)
-		pr_err("failed to get voltage, rc=%d\n", rc);
-
 	rc = fg_gen4_get_battery_temp(fg, &temp);
 	if (rc < 0)
 		pr_err("Error in getting batt_temp, rc=%d\n", rc);
-
-	rc = get_cycle_count(chip->counter, &cycle_count);
-	if (rc < 0)
-		pr_err("failed to get cycle count, rc=%d\n", rc);
-
-	pr_info("adjust_soc: s %d r %d i %d v %d t %d cc %d m 0x%02x\n",
-			soc,
-			esr_uohms,
-			curr_ua/1000,
-			volt_uv/1000,
-			temp,
-			cycle_count,
-			msoc);
 
 	if (temp < 450 && fg->last_batt_temp >= 450) {
 		/* follow the way that fg_notifier_cb use wake lock */
@@ -5963,8 +5925,6 @@ int fg_get_batt_isense(struct fg_dev *fg, int *val)
 	/* Sign bit is bit 15 */
 	temp = sign_extend32(temp, 15);
 	*val = div_s64((s64)temp * BATT_CURRENT_NUMR, BATT_CURRENT_DENR);
-	pr_info("read batt isense: %d[%d]%d\n",
-			(*val)/10, *val, (*val)/1000);
 
 	return 0;
 }
@@ -6013,7 +5973,6 @@ static int fg_gen4_probe(struct platform_device *pdev)
 	fg->debug_mask = &fg_gen4_debug_mask;
 	fg->irqs = fg_irqs;
 	fg->charge_status = -EINVAL;
-	fg->prev_charge_status = -EINVAL;
 	fg->online_status = -EINVAL;
 	fg->batt_id_ohms = -EINVAL;
 	chip->ki_coeff_full_soc[0] = -EINVAL;

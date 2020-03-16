@@ -242,7 +242,7 @@ struct smb5 {
 	struct smb_dt_props	dt;
 };
 
-static int __debug_mask = PR_MISC | PR_OEM | PR_WLS;
+static int __debug_mask = 0;
 module_param_named(
 	debug_mask, __debug_mask, int, 0600
 );
@@ -426,7 +426,6 @@ static int smb5_configure_internal_pull(struct smb_charger *chg, int type,
 
 int smblib_change_psns_to_curr(struct smb_charger *chg, int uv)
 {
-	dev_info(chg->dev, "get Vpsns = %d uV \n", uv);
 	uv =  uv * PSNS_CURRENT_SAMPLE_RATE / PSNS_CURRENT_SAMPLE_RESIS;
 
 	return uv;

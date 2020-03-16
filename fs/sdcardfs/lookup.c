@@ -235,9 +235,12 @@ static int sdcardfs_name_match(struct dir_context *ctx, const char *name,
 	struct qstr candidate = QSTR_INIT(name, namelen);
 
 	if (qstr_case_eq(buf->to_find, &candidate)) {
-		memcpy(buf->name, name, namelen);
-		buf->name[namelen] = 0;
 		buf->found = true;
+		buf->name = kmalloc(namelen + 1, GFP_KERNEL);
+		if (buf->name) {
+			memcpy(buf->name, name, namelen);
+			buf->name[namelen] = '\0';
+		}
 		return 1;
 	}
 	return 0;
@@ -258,7 +261,6 @@ static struct dentry *__sdcardfs_lookup(struct dentry *dentry,
 	struct dentry *lower_dentry;
 	const struct qstr *name;
 	struct path lower_path;
-	struct qstr dname;
 	struct dentry *ret_dentry = NULL;
 	struct sdcardfs_sb_info *sbi;
 
@@ -286,37 +288,39 @@ static struct dentry *__sdcardfs_lookup(struct dentry *dentry,
 		struct sdcardfs_name_data buffer = {
 			.ctx.actor = sdcardfs_name_match,
 			.to_find = name,
-			.name = __getname(),
 			.found = false,
 		};
 
-		if (!buffer.name) {
-			err = -ENOMEM;
-			goto out;
-		}
 		file = dentry_open(lower_parent_path, O_RDONLY, cred);
 		if (IS_ERR(file)) {
 			err = PTR_ERR(file);
-			goto put_name;
+			goto err;
 		}
+
 		err = iterate_dir(file, &buffer.ctx);
 		fput(file);
 		if (err)
-			goto put_name;
+			goto err;
 
-		if (buffer.found)
+		if (buffer.found) {
+			if (!buffer.name) {
+				err = -ENOMEM;
+				goto out;
+			}
+
 			err = vfs_path_lookup(lower_dir_dentry,
 						lower_dir_mnt,
 						buffer.name, 0,
 						&lower_path);
-		else
+			kfree(buffer.name);
+		} else {
 			err = -ENOENT;
-put_name:
-		__putname(buffer.name);
+		}
 	}
 
 	/* no error: handle positive dentries */
 	if (!err) {
+found:
 		/* check if the dentry is an obb dentry
 		 * if true, the lower_inode must be replaced with
 		 * the inode of the graft path
@@ -360,26 +364,30 @@ put_name:
 	 * We don't consider ENOENT an error, and we want to return a
 	 * negative dentry.
 	 */
+err:
 	if (err && err != -ENOENT)
 		goto out;
 
-	/* instatiate a new negative dentry */
-	dname.name = name->name;
-	dname.len = name->len;
-
-	/* See if the low-level filesystem might want
-	 * to use its own hash
-	 */
-	lower_dentry = lookup_one_len_unlocked(dname.name, lower_dir_dentry,
-					       dname.len);
-	if (IS_ERR(lower_dentry))
-		return lower_dentry;
-
-	if (d_really_is_negative(lower_dentry))
-		err = -ENOENT;
+	/* get a (very likely) new negative dentry */
+	lower_dentry = lookup_one_len_unlocked(name->name,
+					       lower_dir_dentry, name->len);
+	if (IS_ERR(lower_dentry)) {
+		err = PTR_ERR(lower_dentry);
+		goto out;
+	}
 
 	lower_path.dentry = lower_dentry;
 	lower_path.mnt = mntget(lower_dir_mnt);
+
+	/*
+	 * Check if someone sneakily filled in the dentry when
+	 * we weren't looking. We'll check again in create.
+	 */
+	if (unlikely(d_inode_rcu(lower_dentry))) {
+		err = 0;
+		goto found;
+	}
+
 	sdcardfs_set_lower_path(dentry, &lower_path);
 
 	/*

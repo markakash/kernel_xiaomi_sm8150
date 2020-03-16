@@ -6,6 +6,7 @@
  * initial implementation -- AV, Oct 2001.
  */
 
+#include <linux/cache.h>
 #include <linux/fs.h>
 #include <linux/export.h>
 #include <linux/seq_file.h>
@@ -18,6 +19,9 @@
 
 #include <linux/uaccess.h>
 #include <asm/page.h>
+
+static struct kmem_cache *seq_file_cache __ro_after_init;
+static struct kmem_cache *seq_ops_cache __ro_after_init;
 
 static void seq_set_overflow(struct seq_file *m)
 {
@@ -51,7 +55,7 @@ int seq_open(struct file *file, const struct seq_operations *op)
 
 	WARN_ON(file->private_data);
 
-	p = kzalloc(sizeof(*p), GFP_KERNEL);
+	p = kmem_cache_zalloc(seq_file_cache, GFP_KERNEL);
 	if (!p)
 		return -ENOMEM;
 
@@ -366,7 +370,7 @@ int seq_release(struct inode *inode, struct file *file)
 {
 	struct seq_file *m = file->private_data;
 	kvfree(m->buf);
-	kfree(m);
+	kmem_cache_free(seq_file_cache, m);
 	return 0;
 }
 EXPORT_SYMBOL(seq_release);
@@ -563,7 +567,7 @@ static void single_stop(struct seq_file *p, void *v)
 int single_open(struct file *file, int (*show)(struct seq_file *, void *),
 		void *data)
 {
-	struct seq_operations *op = kmalloc(sizeof(*op), GFP_KERNEL);
+	struct seq_operations *op = kmem_cache_alloc(seq_ops_cache, GFP_KERNEL);
 	int res = -ENOMEM;
 
 	if (op) {
@@ -575,7 +579,7 @@ int single_open(struct file *file, int (*show)(struct seq_file *, void *),
 		if (!res)
 			((struct seq_file *)file->private_data)->private = data;
 		else
-			kfree(op);
+			kmem_cache_free(seq_ops_cache, op);
 	}
 	return res;
 }
@@ -603,7 +607,7 @@ int single_release(struct inode *inode, struct file *file)
 {
 	const struct seq_operations *op = ((struct seq_file *)file->private_data)->op;
 	int res = seq_release(inode, file);
-	kfree(op);
+	kmem_cache_free(seq_ops_cache, (void*)op);
 	return res;
 }
 EXPORT_SYMBOL(single_release);
@@ -1106,3 +1110,9 @@ seq_hlist_next_percpu(void *v, struct hlist_head __percpu *head,
 	return NULL;
 }
 EXPORT_SYMBOL(seq_hlist_next_percpu);
+
+void __init seq_file_init(void)
+{
+	seq_file_cache = KMEM_CACHE(seq_file, SLAB_PANIC);
+	seq_ops_cache = KMEM_CACHE(seq_operations, SLAB_HWCACHE_ALIGN | SLAB_PANIC);
+}

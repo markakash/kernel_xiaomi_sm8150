@@ -78,7 +78,7 @@ static inline struct kernfs_node *kernfs_dentry_node(struct dentry *dentry)
 }
 
 extern const struct super_operations kernfs_sops;
-extern struct kmem_cache *kernfs_node_cache;
+extern struct kmem_cache *kernfs_node_cache, *kernfs_iattrs_cache;
 
 /*
  * inode.c
@@ -113,6 +113,7 @@ struct kernfs_node *kernfs_find_and_get_node_by_ino(struct kernfs_root *root,
  */
 extern const struct file_operations kernfs_file_fops;
 
+void __init init_kernfs_file_pool(void);
 void kernfs_drain_open_files(struct kernfs_node *kn);
 
 /*
