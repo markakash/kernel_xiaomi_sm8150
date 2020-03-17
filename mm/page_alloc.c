@@ -1873,7 +1873,7 @@ static void prep_new_page(struct page *page, unsigned int order, gfp_t gfp_flags
  * Go through the free lists for the given migratetype and remove
  * the smallest available page from the freelists
  */
-static inline
+static __always_inline
 struct page *__rmqueue_smallest(struct zone *zone, unsigned int order,
 						int migratetype)
 {
@@ -1917,7 +1917,7 @@ static int fallbacks[MIGRATE_TYPES][4] = {
 };
 
 #ifdef CONFIG_CMA
-static struct page *__rmqueue_cma_fallback(struct zone *zone,
+static __always_inline struct page *__rmqueue_cma_fallback(struct zone *zone,
 					unsigned int order)
 {
 	return __rmqueue_smallest(zone, order, MIGRATE_CMA);
@@ -2298,7 +2298,7 @@ static bool unreserve_highatomic_pageblock(const struct alloc_context *ac,
  * deviation from the rest of this file, to make the for loop
  * condition simpler.
  */
-static inline bool
+static __always_inline bool
 __rmqueue_fallback(struct zone *zone, int order, int start_migratetype)
 {
 	struct free_area *area;
@@ -2370,8 +2370,8 @@ do_steal:
  * Do the hard work of removing an element from the buddy allocator.
  * Call me with the zone->lock already held.
  */
-static struct page *__rmqueue(struct zone *zone, unsigned int order,
-				int migratetype)
+static __always_inline struct page *
+__rmqueue(struct zone *zone, unsigned int order, int migratetype)
 {
 	struct page *page;
 
@@ -3778,16 +3778,18 @@ retry:
 	return page;
 }
 
-static void wake_all_kswapds(unsigned int order, const struct alloc_context *ac)
+static void wake_all_kswapds(unsigned int order, gfp_t gfp_mask,
+			     const struct alloc_context *ac)
 {
 	struct zoneref *z;
 	struct zone *zone;
 	pg_data_t *last_pgdat = NULL;
+	enum zone_type high_zoneidx = ac->high_zoneidx;
 
-	for_each_zone_zonelist_nodemask(zone, z, ac->zonelist,
-					ac->high_zoneidx, ac->nodemask) {
+	for_each_zone_zonelist_nodemask(zone, z, ac->zonelist, high_zoneidx,
+					ac->nodemask) {
 		if (last_pgdat != zone->zone_pgdat)
-			wakeup_kswapd(zone, order, ac->high_zoneidx);
+			wakeup_kswapd(zone, gfp_mask, order, high_zoneidx);
 		last_pgdat = zone->zone_pgdat;
 	}
 }
@@ -4056,7 +4058,7 @@ retry_cpuset:
 		goto nopage;
 
 	if (gfp_mask & __GFP_KSWAPD_RECLAIM)
-		wake_all_kswapds(order, ac);
+		wake_all_kswapds(order, gfp_mask, ac);
 
 	/*
 	 * The adjusted alloc_flags might result in immediate success, so try
@@ -4114,7 +4116,7 @@ retry_cpuset:
 retry:
 	/* Ensure kswapd doesn't accidentally go to sleep as long as we loop */
 	if (gfp_mask & __GFP_KSWAPD_RECLAIM)
-		wake_all_kswapds(order, ac);
+		wake_all_kswapds(order, gfp_mask, ac);
 
 	reserve_flags = __gfp_pfmemalloc_flags(gfp_mask);
 	if (reserve_flags)
@@ -4444,8 +4446,10 @@ static struct page *__page_frag_cache_refill(struct page_frag_cache *nc,
 				PAGE_FRAG_CACHE_MAX_ORDER);
 	nc->size = page ? PAGE_FRAG_CACHE_MAX_SIZE : PAGE_SIZE;
 #endif
-	if (unlikely(!page))
+	if (unlikely(!page)) {
+		gfp |= __GFP_KSWAPD_RECLAIM;
 		page = alloc_pages_node(NUMA_NO_NODE, gfp, 0);
+	}
 
 	nc->va = page ? page_address(page) : NULL;
 
@@ -5534,13 +5538,12 @@ static int zone_batchsize(struct zone *zone)
 
 	/*
 	 * The per-cpu-pages pools are set to around 1000th of the
-	 * size of the zone.  But no more than 1/2 of a meg.
-	 *
-	 * OK, so we don't know how big the cache is.  So guess.
+	 * size of the zone.
 	 */
 	batch = zone->managed_pages / 1024;
-	if (batch * PAGE_SIZE > 512 * 1024)
-		batch = (512 * 1024) / PAGE_SIZE;
+	/* But no more than a meg. */
+	if (batch * PAGE_SIZE > 1024 * 1024)
+		batch = (1024 * 1024) / PAGE_SIZE;
 	batch /= 4;		/* We effectively *= 4 below */
 	if (batch < 1)
 		batch = 1;
