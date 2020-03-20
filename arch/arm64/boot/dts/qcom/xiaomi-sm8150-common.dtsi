@@ -435,11 +435,7 @@
 };
 
 &pcie0 {
-	status = "disabled";
-};
-
-&pcie1 {
-	status = "disabled";
+	qcom,no-l1-supported;
 };
 
 &thermal_zones {
