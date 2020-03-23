@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2018-2020 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -284,7 +284,8 @@ static void __hdd_nud_failure_work(void *data)
 	hdd_debug("Disconnecting STA with session id: %d",
 		  adapter->session_id);
 	/* Issue Disconnect */
-	status = wlan_hdd_disconnect(adapter, eCSR_DISCONNECT_REASON_DEAUTH);
+	status = wlan_hdd_disconnect(adapter, eCSR_DISCONNECT_REASON_DEAUTH,
+				     eSIR_MAC_GATEWAY_REACHABILITY_FAILURE);
 	if (0 != status) {
 		hdd_err("wlan_hdd_disconnect failed, status: %d", status);
 		hdd_set_disconnect_status(adapter, false);
@@ -347,8 +348,6 @@ static void hdd_nud_process_failure_event(struct hdd_adapter *adapter)
 		hdd_nud_capture_stats(adapter, NUD_FAILED);
 		if (hdd_nud_honour_failure(adapter)) {
 			adapter->nud_tracking.curr_state = NUD_FAILED;
-			qdf_sched_work(0, &adapter
-					->nud_tracking.nud_event_work);
 		} else {
 			hdd_nud_set_tracking(adapter, NUD_NONE, false);
 		}

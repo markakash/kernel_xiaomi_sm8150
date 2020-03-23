@@ -1030,6 +1030,7 @@ struct ipa3_sys_context {
 	struct work_struct repl_work;
 	void (*repl_hdlr)(struct ipa3_sys_context *sys);
 	struct ipa3_repl_ctx *repl;
+	struct ipa3_repl_ctx *page_recycle_repl;
 	u32 pkt_sent;
 	struct napi_struct *napi_obj;
 	struct list_head pending_pkts[GSI_VEID_MAX];
@@ -2819,8 +2820,21 @@ int __ipa3_del_rt_rule(u32 rule_hdl);
 int __ipa3_del_hdr(u32 hdr_hdl, bool by_user);
 int __ipa3_release_hdr(u32 hdr_hdl);
 int __ipa3_release_hdr_proc_ctx(u32 proc_ctx_hdl);
+#ifdef CONFIG_DEBUG_FS
 int _ipa_read_ep_reg_v3_0(char *buf, int max_len, int pipe);
 int _ipa_read_ep_reg_v4_0(char *buf, int max_len, int pipe);
+#else
+static inline
+int _ipa_read_ep_reg_v3_0(char *buf, int max_len, int pipe)
+{
+	return 0;
+}
+static inline
+int _ipa_read_ep_reg_v4_0(char *buf, int max_len, int pipe)
+{
+	return 0;
+}
+#endif
 int _ipa_read_ipahal_regs(void);
 void _ipa_enable_clks_v3_0(void);
 void _ipa_disable_clks_v3_0(void);
@@ -2867,6 +2881,7 @@ void ipa3_counter_remove_hdl(int hdl);
 void ipa3_counter_id_remove_all(void);
 int ipa3_id_alloc(void *ptr);
 void *ipa3_id_find(u32 id);
+bool ipa3_check_idr_if_freed(void *ptr);
 void ipa3_id_remove(u32 id);
 int ipa3_enable_force_clear(u32 request_id, bool throttle_source,
 	u32 source_pipe_bitmask);
