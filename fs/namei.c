@@ -39,7 +39,6 @@
 #include <linux/bitops.h>
 #include <linux/init_task.h>
 #include <linux/uaccess.h>
-#include <linux/build_bug.h>
 
 #include "internal.h"
 #include "mount.h"
@@ -131,7 +130,6 @@ getname_flags(const char __user *filename, int flags, int *empty)
 	struct filename *result;
 	char *kname;
 	int len;
-	BUILD_BUG_ON(offsetof(struct filename, iname) % sizeof(long) != 0);
 
 	result = audit_reusename(filename);
 	if (result)
@@ -1100,7 +1098,7 @@ const char *get_link(struct nameidata *nd)
 		return ERR_PTR(error);
 
 	nd->last_type = LAST_BIND;
-	res = inode->i_link;
+	res = READ_ONCE(inode->i_link);
 	if (!res) {
 		const char * (*get)(struct dentry *, struct inode *,
 				struct delayed_call *);
@@ -4812,8 +4810,10 @@ static int generic_readlink(struct dentry *dentry, char __user *buffer,
 {
 	DEFINE_DELAYED_CALL(done);
 	struct inode *inode = d_inode(dentry);
-	const char *link = inode->i_link;
+	const char *link;
 	int res;
+
+	link = READ_ONCE(inode->i_link);
 
 	if (!link) {
 		link = inode->i_op->get_link(dentry, inode, &done);
