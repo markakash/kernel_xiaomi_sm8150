@@ -28,9 +28,7 @@
 #include <linux/klapse.h>
 #endif
 
-#ifdef CONFIG_EXPOSURE_ADJUSTMENT
 #include "exposure_adjustment.h"
-#endif
 
 /**
  * topology is currently defined by a set of following 3 values:
@@ -732,12 +730,10 @@ int dsi_panel_set_fod_hbm_backlight(struct dsi_panel *panel, bool status) {
 		return 0;
 
 	if (status) {
-#ifdef CONFIG_EXPOSURE_ADJUSTMENT
 		if (ea_panel_is_enabled()) {
 			ea_panel_mode_ctrl(panel, 0);
 			panel->resend_ea = true;
 		}
-#endif
 		bl_level = panel->bl_config.bl_max_level;
 
 		if (panel->doze_state) {
@@ -756,12 +752,10 @@ int dsi_panel_set_fod_hbm_backlight(struct dsi_panel *panel, bool status) {
 			dsi_panel_set_doze_backlight(panel, bl_level);
 		}
 
-#ifdef CONFIG_EXPOSURE_ADJUSTMENT
 		if (panel->resend_ea) {
 			ea_panel_mode_ctrl(panel, 1);
 			panel->resend_ea = false;
 		}
-#endif
 	}
 
 	return rc;
@@ -778,10 +772,8 @@ int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 
 	pr_debug("backlight type:%d lvl:%d\n", bl->type, bl_lvl);
 
-#ifdef CONFIG_EXPOSURE_ADJUSTMENT
 	if (bl_lvl > 0)
 		bl_lvl = ea_panel_calc_backlight(bl_lvl < bl_dc_min ? bl_dc_min : bl_lvl);
-#endif
 
 	switch (bl->type) {
 	case DSI_BACKLIGHT_WLED:
