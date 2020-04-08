@@ -722,7 +722,8 @@ int dsi_panel_set_normal_backlight(struct dsi_panel *panel, u32 bl_lvl)
 	return rc;
 }
 
-int dsi_panel_set_fod_hbm_backlight(struct dsi_panel *panel, bool status) {
+int dsi_panel_set_fod_hbm_backlight(struct dsi_panel *panel, bool status)
+{
 	u32 bl_level;
 	int rc = 0;
 
@@ -736,9 +737,8 @@ int dsi_panel_set_fod_hbm_backlight(struct dsi_panel *panel, bool status) {
 		}
 		bl_level = panel->bl_config.bl_max_level;
 
-		if (panel->doze_state) {
+		if (panel->doze_state)
 			dsi_panel_set_normal_backlight(panel, bl_level);
-		}
 
 		dsi_panel_update_backlight(panel, bl_level);
 		panel->fod_hbm_status = true;
@@ -748,9 +748,8 @@ int dsi_panel_set_fod_hbm_backlight(struct dsi_panel *panel, bool status) {
 		panel->fod_hbm_status = false;
 		dsi_panel_update_backlight(panel, panel->bl_config.bl_level);
 
-		if (panel->doze_state) {
+		if (panel->doze_state)
 			dsi_panel_set_doze_backlight(panel, bl_level);
-		}
 
 		if (panel->resend_ea) {
 			ea_panel_mode_ctrl(panel, 1);
@@ -773,7 +772,8 @@ int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 	pr_debug("backlight type:%d lvl:%d\n", bl->type, bl_lvl);
 
 	if (bl_lvl > 0)
-		bl_lvl = ea_panel_calc_backlight(bl_lvl < bl_dc_min ? bl_dc_min : bl_lvl);
+		bl_lvl = ea_panel_calc_backlight(bl_lvl < bl_dc_min ?
+						 bl_dc_min : bl_lvl);
 
 	switch (bl->type) {
 	case DSI_BACKLIGHT_WLED:
@@ -791,7 +791,7 @@ int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 		pr_err("Backlight type(%d) not supported\n", bl->type);
 		rc = -ENOTSUPP;
 	}
-	
+
 #ifdef CONFIG_KLAPSE
 	set_rgb_slider(bl_lvl);
 #endif
@@ -3308,7 +3308,7 @@ static int dsi_panel_parse_mi_config(struct dsi_panel *panel,
 		panel->doze_backlight_threshold = DOZE_MIN_BRIGHTNESS_LEVEL;
 		pr_debug("default doze backlight threshold is %d\n", DOZE_MIN_BRIGHTNESS_LEVEL);
 	} else {
-		pr_debug("doze backlight threshold %d \n", panel->doze_backlight_threshold);
+		pr_debug("doze backlight threshold %d\n", panel->doze_backlight_threshold);
 	}
 
 	panel->doze_state = false;
@@ -3451,14 +3451,14 @@ void dsi_panel_put(struct dsi_panel *panel)
 }
 
 #ifdef CONFIG_EXPOSURE_ADJUSTMENT
-static struct dsi_panel * set_panel;
+static struct dsi_panel *set_panel;
 static ssize_t mdss_fb_set_ea_enable(struct device *dev,
 	struct device_attribute *attr, const char *buf, size_t len)
 {
 	u32 ea_enable;
 
-	if (sscanf(buf, "%d", &ea_enable) != 1) {
-		pr_err("sccanf buf error!\n");
+	if (kstrtou32(buf, 0, &ea_enable)) {
+	pr_err("sccanf buf error!\n");
 		return len;
 	}
 
@@ -3478,7 +3478,7 @@ static ssize_t mdss_fb_get_ea_enable(struct device *dev,
 	return ret;
 }
 
-static DEVICE_ATTR(msm_fb_ea_enable, S_IRUGO | S_IWUSR,
+static DEVICE_ATTR(msm_fb_ea_enable, 0644,
 	mdss_fb_get_ea_enable, mdss_fb_set_ea_enable);
 
 static struct attribute *mdss_fb_attrs[] = {
