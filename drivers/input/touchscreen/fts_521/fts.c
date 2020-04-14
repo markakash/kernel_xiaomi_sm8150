@@ -4763,7 +4763,7 @@ static void fts_mode_handler_work(struct work_struct *work)
 
 	info = container_of(work, struct fts_ts_info, mode_handler_work);
 
-	fts_mode_handler(info, 0);
+	fts_mode_handler(info, 1);
 }
 
 /**
