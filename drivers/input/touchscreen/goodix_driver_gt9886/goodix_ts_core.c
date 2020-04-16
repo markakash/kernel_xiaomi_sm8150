@@ -322,6 +322,7 @@ static int goodix_debugfs_init(void)
 	goodix_dbg.dentry = r_b;
 
 exit:
+	kfree(goodix_dbg.buf.data);
 	return 0;
 }
 
@@ -452,8 +453,8 @@ static ssize_t goodix_ts_read_cfg_show(struct device *dev,
 	struct goodix_ts_device *ts_dev = core_data->ts_dev;
 	int ret, i, offset;
 	char *cfg_buf;
+	cfg_buf = kzalloc(PAGE_SIZE, GFP_KERNEL);
 
-	cfg_buf = kzalloc(4096, GFP_KERNEL);
 	disable_irq(core_data->irq);
 	if (ts_dev->hw_ops->read_config)
 		ret = ts_dev->hw_ops->read_config(ts_dev, cfg_buf, 0);
@@ -461,55 +462,73 @@ static ssize_t goodix_ts_read_cfg_show(struct device *dev,
 		ret = -EINVAL;
 	enable_irq(core_data->irq);
 
-	offset = 0;
 	if (ret > 0) {
+		offset = 0;
 		for (i = 0; i < ret; i++) {
 			if (i != 0 && i % 20 == 0)
 				buf[offset++] = '\n';
-			offset += snprintf(&buf[offset], 4096 - offset, "%02x ", cfg_buf[i]);
+			offset += snprintf(&buf[offset], PAGE_SIZE - offset, "%02x ", cfg_buf[i]);
 		}
 	}
 	kfree(cfg_buf);
-	return ret;
+	if (ret <= 0)
+		return ret;
+
+	return offset;
 }
 
-static int goodix_ts_convert_0x_data(const u8 *buf,
-		int buf_size, unsigned char *out_buf, int *out_buf_len)
+static u8 ascii2hex(u8 a)
+{
+	s8 value = 0;
+
+	if (a >= '0' && a <= '9')
+		value = a - '0';
+	else if (a >= 'A' && a <= 'F')
+		value = a - 'A' + 0x0A;
+	else if (a >= 'a' && a <= 'f')
+		value = a - 'a' + 0x0A;
+	else
+		value = 0xff;
+
+	return value;
+}
+
+static int goodix_ts_convert_0x_data(const u8 *buf, int buf_size,
+				     unsigned char *out_buf, int *out_buf_len)
 {
 	int i, m_size = 0;
 	int temp_index = 0;
+	u8 high, low;
 
 	for (i = 0; i < buf_size; i++) {
 		if (buf[i] == 'x' || buf[i] == 'X')
 			m_size++;
 	}
-	ts_info("***m_size:%d", m_size);
+
 	if (m_size <= 1) {
 		ts_err("cfg file ERROR, valid data count:%d\n", m_size);
 		return -EINVAL;
 	}
 	*out_buf_len = m_size;
+
 	for (i = 0; i < buf_size; i++) {
-		if (buf[i] == 'x' || buf[i] == 'X') {
-			if (temp_index >= m_size) {
-				ts_err("exchange cfg data error, overflow, temp_index:%d,m_size:%d\n",
-						temp_index, m_size);
-				return -EINVAL;
-			}
-			if (buf[i + 1] >= '0' && buf[i + 1] <= '9')
-				out_buf[temp_index] = (buf[i + 1] - '0') << 4;
-			else if (buf[i + 1] >= 'a' && buf[i + 1] <= 'f')
-				out_buf[temp_index] = (buf[i + 1] - 'a' + 10) << 4;
-			else if (buf[i + 1] >= 'A' && buf[i + 1] <= 'F')
-				out_buf[temp_index] = (buf[i + 1] - 'A' + 10) << 4;
-			if (buf[i + 2] >= '0' && buf[i + 2] <= '9')
-				out_buf[temp_index] += (buf[i + 2] - '0');
-			else if (buf[i + 2] >= 'a' && buf[i + 2] <= 'f')
-				out_buf[temp_index] += (buf[i + 2] - 'a' + 10);
-			else if (buf[i + 2] >= 'A' && buf[i + 2] <= 'F')
-				out_buf[temp_index] += (buf[i + 2] - 'A' + 10);
-			temp_index++;
+		if (buf[i] != 'x' && buf[i] != 'X')
+			continue;
+
+		if (temp_index >= m_size) {
+			ts_err("exchange cfg data error, overflow,"
+			       "temp_index:%d,m_size:%d\n",
+			       temp_index, m_size);
+			return -EINVAL;
 		}
+		high = ascii2hex(buf[i + 1]);
+		low = ascii2hex(buf[i + 2]);
+		if (high == 0xff || low == 0xff) {
+			ts_err("failed convert: 0x%x, 0x%x",
+				buf[i + 1], buf[i + 2]);
+			return -EINVAL;
+		}
+		out_buf[temp_index++] = (high << 4) + low;
 	}
 	return 0;
 }
@@ -543,7 +562,7 @@ static ssize_t goodix_ts_send_cfg_store(struct device *dev,
 	} else
 		ts_info("cfg file [%s] is ready", GOODIX_DEFAULT_CFG_NAME);
 
-	config = kzalloc(sizeof(struct goodix_ts_config), GFP_KERNEL);
+	config = kzalloc(sizeof(*config), GFP_KERNEL);
 	if (config == NULL) {
 		ts_err("Memory allco err");
 		goto exit;
@@ -564,10 +583,8 @@ static ssize_t goodix_ts_send_cfg_store(struct device *dev,
 
 exit:
 	enable_irq(core_data->irq);
-	if (config) {
-		kfree(config);
-		config = NULL;
-	}
+	kfree(config);
+	config = NULL;
 	if (cfg_img) {
 		release_firmware(cfg_img);
 		cfg_img = NULL;
@@ -880,6 +897,8 @@ static irqreturn_t goodix_ts_threadirq_func(int irq, void *data)
 	int r;
 	struct i2c_client *client = NULL;
 
+	pm_qos_update_request(&core_data->pm_touch_req, 100);
+
 	client = to_i2c_client(ts_dev->dev);
 	i2c_set_clientdata(client, core_data);
 
@@ -887,10 +906,10 @@ static irqreturn_t goodix_ts_threadirq_func(int irq, void *data)
 	/* inform external module */
 	/* ts_err("enter %s\n", __func__);*/
 	if (core_data->tp_already_suspend) {
-		ts_info("device in suspend noirq, schedue to work");
-		pm_wakeup_event(&client->dev, msecs_to_jiffies(500));
+		ts_info("device in suspend, schedule to work");
+		pm_wakeup_event(&core_data->pdev->dev, msecs_to_jiffies(300));
 		queue_work(core_data->event_wq, &core_data->sleep_work);
-		return IRQ_HANDLED;
+		goto handled;
 	}
 
 	mutex_lock(&goodix_modules.mutex);
@@ -902,7 +921,7 @@ static irqreturn_t goodix_ts_threadirq_func(int irq, void *data)
 		if (r == EVT_CANCEL_IRQEVT) {
 			ts_err("enter %s EVT_CANCEL_IRQEVT\n", __func__);
 			mutex_unlock(&goodix_modules.mutex);
-			return IRQ_HANDLED;
+			goto handled;
 		}
 	}
 	mutex_unlock(&goodix_modules.mutex);
@@ -918,6 +937,9 @@ static irqreturn_t goodix_ts_threadirq_func(int irq, void *data)
 	}
 	/* clean irq flag */
 	ts_dev->hw_ops->write_trans(ts_dev, ts_dev->reg.coor, &irq_flag, 1);/*TS_REG_COORDS_BASE*/
+
+handled:
+	pm_qos_update_request(&core_data->pm_touch_req, PM_QOS_DEFAULT_VALUE);
 	return IRQ_HANDLED;
 }
 
@@ -949,6 +971,11 @@ int goodix_ts_irq_setup(struct goodix_ts_core *core_data)
 		ts_err("Failed to requeset threaded irq:%d", r);
 	else
 		atomic_set(&core_data->irq_enabled, 1);
+
+	core_data->pm_touch_req.type = PM_QOS_REQ_AFFINE_IRQ;
+	core_data->pm_touch_req.irq = core_data->irq;
+	pm_qos_add_request(&core_data->pm_touch_req, PM_QOS_CPU_DMA_LATENCY,
+			   PM_QOS_DEFAULT_VALUE);
 	return r;
 }
 
@@ -1711,6 +1738,9 @@ int goodix_ts_msm_drm_notifier_callback(struct notifier_block *self,
 		container_of(self, struct goodix_ts_core, msm_drm_notifier);
 	struct msm_drm_notifier *msm_drm_event = data;
 	int blank;
+
+	if (event != MSM_DRM_EVENT_BLANK && event != MSM_DRM_EARLY_EVENT_BLANK)
+		return NOTIFY_DONE;
 
 	if (msm_drm_event && msm_drm_event->data && core_data) {
 		blank = *(int *)(msm_drm_event->data);
