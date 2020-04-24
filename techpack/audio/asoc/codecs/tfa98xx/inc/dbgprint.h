@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2014 NXP Semiconductors, All Rights Reserved.
+ * Copyright (C) 2014-2020 NXP Semiconductors, All Rights Reserved.
+ * Copyright 2020 GOODIX
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -7,14 +8,11 @@
  *
  */
 
+
 #ifndef _DBGPRINT_H
 #   define _DBGPRINT_H
 
 /* Debugging macro's. */
-//#   ifndef DEBUG
-//#      define DEBUG
-//#   endif
-
 #   ifndef ASSERT
 //#define ASSERT
 #   endif
@@ -82,7 +80,7 @@
 #	define PRINT(...)	printf(__VA_ARGS__)
 /*
 #	define PRINT(...) {	FILE *stream;														\
-							if((stream = freopen("nxp_tfa.txt", "ab+", stdout)) == NULL) exit(-1);	\
+							if((stream = freopen("tfa_tfa.txt", "ab+", stdout)) == NULL) exit(-1);	\
 							printf(__VA_ARGS__);												\
 							freopen( "CON", "ab+", stdout );										\
 						}
