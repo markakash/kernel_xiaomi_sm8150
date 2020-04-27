@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/arm64 4.14.173 Kernel Configuration
+# Linux/arm64 4.14.177 Kernel Configuration
 #
 CONFIG_ARM64=y
 CONFIG_64BIT=y
@@ -48,7 +48,7 @@ CONFIG_THREAD_INFO_IN_TASK=y
 CONFIG_INIT_ENV_ARG_LIMIT=32
 CONFIG_CROSS_COMPILE=""
 # CONFIG_COMPILE_TEST is not set
-CONFIG_LOCALVERSION="-paranoid"
+CONFIG_LOCALVERSION="-lucid"
 # CONFIG_LOCALVERSION_AUTO is not set
 CONFIG_DEFAULT_HOSTNAME="(none)"
 CONFIG_SWAP=y
@@ -5403,6 +5403,7 @@ CONFIG_MESSAGE_LOGLEVEL_DEFAULT=4
 # Compile-time checks and compiler options
 #
 CONFIG_DEBUG_INFO=y
+CONFIG_FRAME_WARN=8192
 # CONFIG_DEBUG_INFO_REDUCED is not set
 # CONFIG_DEBUG_INFO_SPLIT is not set
 # CONFIG_DEBUG_INFO_DWARF4 is not set
