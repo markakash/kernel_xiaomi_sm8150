@@ -1,4 +1,4 @@
-/* Copyright (c) 2015-2019 The Linux Foundation. All rights reserved.
+/* Copyright (c) 2015-2020 The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -20,7 +20,6 @@
 #include <linux/ipa_mhi.h>
 #include "../ipa_common_i.h"
 #include "ipa_i.h"
-#include "ipa_qmi_service.h"
 
 #define IPA_MHI_DRV_NAME "ipa_mhi"
 
@@ -60,8 +59,8 @@
 #define IPA_MHI_FUNC_EXIT() \
 	IPA_MHI_DBG("EXIT\n")
 
-#define IPA_MHI_MAX_UL_CHANNELS 1
-#define IPA_MHI_MAX_DL_CHANNELS 2
+#define IPA_MHI_MAX_UL_CHANNELS 2
+#define IPA_MHI_MAX_DL_CHANNELS 3
 
 /* bit #40 in address should be asserted for MHI transfers over pcie */
 #define IPA_MHI_HOST_ADDR_COND(addr) \
@@ -196,6 +195,7 @@ static int ipa_mhi_start_gsi_channel(enum ipa_client_type client,
 	struct ipa_mhi_msi_info *msi;
 	struct gsi_chan_props ch_props;
 	union gsi_channel_scratch ch_scratch;
+	union gsi_channel_scratch ch_scratch1;
 	struct ipa3_ep_context *ep;
 	const struct ipa_gsi_ep_config *ep_cfg;
 	struct ipa_ep_cfg_ctrl ep_cfg_ctrl;
@@ -339,8 +339,31 @@ static int ipa_mhi_start_gsi_channel(enum ipa_client_type client,
 	} else {
 		ch_scratch.mhi.burst_mode_enabled = false;
 	}
-	res = gsi_write_channel_scratch(ep->gsi_chan_hdl,
-		ch_scratch);
+
+	if (ipa3_ctx->ipa_hw_type == IPA_HW_v4_5 &&
+		ipa3_ctx->platform_type == IPA_PLAT_TYPE_MDM) {
+		memset(&ch_scratch1, 0, sizeof(ch_scratch1));
+		ch_scratch1.mhi_v2.mhi_host_wp_addr_lo =
+			ch_scratch.mhi.mhi_host_wp_addr & 0xFFFFFFFF;
+		ch_scratch1.mhi_v2.mhi_host_wp_addr_hi =
+			(ch_scratch.mhi.mhi_host_wp_addr & 0x1FF00000000ll)
+			>> 32;
+		ch_scratch1.mhi_v2.polling_configuration =
+			ch_scratch.mhi.polling_configuration;
+		ch_scratch1.mhi_v2.assert_bit40 =
+			ch_scratch.mhi.assert_bit40;
+		ch_scratch1.mhi_v2.burst_mode_enabled =
+			ch_scratch.mhi.burst_mode_enabled;
+		ch_scratch1.mhi_v2.polling_mode =
+			ch_scratch.mhi.polling_mode;
+		ch_scratch1.mhi_v2.oob_mod_threshold =
+			ch_scratch.mhi.oob_mod_threshold;
+		res = gsi_write_channel_scratch(ep->gsi_chan_hdl,
+			ch_scratch1);
+	} else {
+		res = gsi_write_channel_scratch(ep->gsi_chan_hdl,
+			ch_scratch);
+	}
 	if (res) {
 		IPA_MHI_ERR("gsi_write_channel_scratch failed %d\n",
 			res);
@@ -645,6 +668,9 @@ int ipa3_mhi_resume_channels_internal(enum ipa_client_type client,
 
 		/* Use GSI update API to not affect non-SWI fields
 		 * inside the scratch while in suspend-resume operation
+		 */
+		/* polling_mode bit remains unchanged for mhi_v2 format,
+		 * no update needed for this effort
 		 */
 		res = gsi_update_mhi_channel_scratch(
 			ep->gsi_chan_hdl, ch_scratch.mhi);
