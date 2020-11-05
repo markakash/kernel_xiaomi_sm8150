@@ -1228,6 +1228,15 @@ int sdhci_msm_execute_tuning(struct sdhci_host *host, u32 opcode)
 		return 0;
 
 	/*
+<<<<<<< HEAD
+=======
+	 * Clear tuning_done flag before tuning to ensure proper
+	 * HS400 settings.
+	 */
+	msm_host->tuning_done = 0;
+
+	/*
+>>>>>>> 42f1ac29670736844f9e116aced432eb71ff8b72
 	 * Don't allow re-tuning for CRC errors observed for any commands
 	 * that are sent during tuning sequence itself.
 	 */
@@ -4682,6 +4691,7 @@ static bool sdhci_msm_is_bootdevice(struct device *dev)
 	 */
 	return true;
 }
+<<<<<<< HEAD
 
 static const struct sdhci_pltfm_data sdhci_msm_pdata = {
 	.quirks = SDHCI_QUIRK_BROKEN_CARD_DETECTION |
@@ -4693,6 +4703,8 @@ static const struct sdhci_pltfm_data sdhci_msm_pdata = {
 	.quirks2 = SDHCI_QUIRK2_PRESET_VALUE_BROKEN,
 	.ops = &sdhci_msm_ops,
 };
+=======
+>>>>>>> 42f1ac29670736844f9e116aced432eb71ff8b72
 
 static int sdhci_msm_probe(struct platform_device *pdev)
 {
