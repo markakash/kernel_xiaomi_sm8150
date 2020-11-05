@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0
 VERSION = 4
 PATCHLEVEL = 14
-SUBLEVEL = 198
+SUBLEVEL = 203
 EXTRAVERSION =
 NAME = Petit Gorille
 
@@ -1339,8 +1339,8 @@ else
 endif
 define filechk_utsrelease.h
 	if [ `echo -n "$(UTS_RELEASE)" | wc -c ` -gt $(uts_len) ]; then \
-		echo '"$(UTS_RELEASE)" exceeds $(uts_len) characters' >&2;    \
-		exit 1;                                                       \
+	  echo '"$(UTS_RELEASE)" exceeds $(uts_len) characters' >&2;    \
+	  exit 1;                                                       \
 	fi;                                                             \
 	(echo \#define UTS_RELEASE \"$(UTS_RELEASE)\";)
 endef
