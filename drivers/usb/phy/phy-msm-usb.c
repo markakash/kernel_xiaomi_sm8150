@@ -2785,6 +2785,10 @@ static void check_for_sdp_connection(struct work_struct *w)
 	msm_otg_set_vbus_state(motg->vbus_state);
 }
 
+#define DP_PULSE_WIDTH_MSEC 200
+static int
+msm_otg_phy_drive_dp_pulse(struct msm_otg *motg, unsigned int pulse_width);
+
 static void msm_otg_sm_work(struct work_struct *w)
 {
 	struct msm_otg *motg = container_of(w, struct msm_otg, sm_work);
@@ -2828,6 +2832,9 @@ static void msm_otg_sm_work(struct work_struct *w)
 				get_pm_runtime_counter(dev), 0);
 			pm_runtime_put_sync(dev);
 			break;
+		} else if (get_psy_type(motg) == POWER_SUPPLY_TYPE_USB_CDP) {
+			pr_debug("Connected to CDP, pull DP up from sm_work\n");
+			msm_otg_phy_drive_dp_pulse(motg, DP_PULSE_WIDTH_MSEC);
 		}
 		pm_runtime_put(dev);
 		/* FALL THROUGH */
@@ -3072,6 +3079,7 @@ msm_otg_phy_drive_dp_pulse(struct msm_otg *motg, unsigned int pulse_width)
 static void msm_otg_set_vbus_state(int online)
 {
 	struct msm_otg *motg = the_msm_otg;
+	struct usb_otg *otg = motg->phy.otg;
 
 	motg->vbus_state = online;
 
@@ -3084,7 +3092,12 @@ static void msm_otg_set_vbus_state(int online)
 				motg->inputs, 0);
 		if (test_and_set_bit(B_SESS_VLD, &motg->inputs))
 			return;
-		if (get_psy_type(motg) == POWER_SUPPLY_TYPE_USB_CDP) {
+		/*
+		 * It might race with block reset happening in sm_work, while
+		 * state machine is in undefined state. Add check to avoid it.
+		 */
+		if ((get_psy_type(motg) == POWER_SUPPLY_TYPE_USB_CDP) &&
+		    (otg->state != OTG_STATE_UNDEFINED)) {
 			pr_debug("Connected to CDP, pull DP up\n");
 			msm_otg_phy_drive_dp_pulse(motg, DP_PULSE_WIDTH_MSEC);
 		}

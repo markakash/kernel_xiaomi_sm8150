@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2020, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2021, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -2578,6 +2578,12 @@ static const struct ipa_ep_configuration ipa3_ep_mapping
 			QMB_MASTER_SELECT_DDR,
 			{ 31, 31, 8, 8, IPA_EE_AP } },
 
+	[IPA_4_5][IPA_CLIENT_TPUT_CONS]         = {
+			true, IPA_v4_5_GROUP_UL_DL,
+			false,
+			IPA_DPS_HPS_SEQ_TYPE_INVALID,
+			QMB_MASTER_SELECT_DDR,
+			{ 25, 16, 9, 9, IPA_EE_AP, GSI_SMART_PRE_FETCH, 4 } },
 	/* IPA_4_5_MHI */
 	[IPA_4_5_MHI][IPA_CLIENT_APPS_CMD_PROD]		= {
 			true, IPA_v4_5_MHI_GROUP_DDR,
@@ -3088,6 +3094,12 @@ static const struct ipa_ep_configuration ipa3_ep_mapping
 			IPA_DPS_HPS_SEQ_TYPE_2ND_PKT_PROCESS_PASS_DEC_UCP,
 			QMB_MASTER_SELECT_DDR,
 			{ 5, 0, 16, 28, IPA_EE_Q6, GSI_SMART_PRE_FETCH, 2 } },
+	[IPA_4_5_AUTO_MHI][IPA_CLIENT_USB_PROD]		= {
+			true, IPA_v4_5_MHI_GROUP_DDR,
+			true,
+			IPA_DPS_HPS_SEQ_TYPE_2ND_PKT_PROCESS_PASS_DEC_UCP,
+			QMB_MASTER_SELECT_DDR,
+			{0, 11, 8, 16, IPA_EE_AP, GSI_SMART_PRE_FETCH, 3} },
 	[IPA_4_5_AUTO_MHI][IPA_CLIENT_Q6_CMD_PROD]		= {
 			true, IPA_v4_5_MHI_GROUP_PCIE,
 			false,
@@ -3179,6 +3191,12 @@ static const struct ipa_ep_configuration ipa3_ep_mapping
 			IPA_DPS_HPS_SEQ_TYPE_INVALID,
 			QMB_MASTER_SELECT_DDR,
 			{ 21, 7, 9, 9, IPA_EE_Q6, GSI_ESCAPE_BUF_ONLY, 0 } },
+	[IPA_4_5_AUTO_MHI][IPA_CLIENT_USB_CONS]			= {
+			true, IPA_v4_5_MHI_GROUP_DDR,
+			false,
+			IPA_DPS_HPS_SEQ_TYPE_INVALID,
+			QMB_MASTER_SELECT_DDR,
+			{13, 4, 9, 9, IPA_EE_AP, GSI_SMART_PRE_FETCH, 4} },
 	[IPA_4_5_AUTO_MHI][IPA_CLIENT_Q6_UL_NLO_DATA_CONS]	= {
 			true, IPA_v4_5_MHI_GROUP_DDR,
 			false,
@@ -5114,7 +5132,7 @@ int ipa3_cfg_ep_ctrl(u32 clnt_hdl, const struct ipa_ep_cfg_ctrl *ep_ctrl)
 	}
 
 	if (ipa3_ctx->ipa_endp_delay_wa) {
-		IPAERR("pipe setting delay is not supported\n");
+		IPADBG("pipe setting delay is not supported\n");
 		return 0;
 	}
 
@@ -7512,7 +7530,7 @@ int ipa3_bind_api_controller(enum ipa_hw_type ipa_hw_type,
 	api_ctrl->ipa_eth_aqc_disconnect = ipa3_eth_aqc_disconnect;
 	api_ctrl->ipa_eth_emac_disconnect = ipa3_eth_emac_disconnect;
 	api_ctrl->ipa_eth_client_conn_evt = ipa3_eth_client_conn_evt;
-	api_ctrl->ipa_eth_client_disconn_evt = ipa3_eth_client_conn_evt;
+	api_ctrl->ipa_eth_client_disconn_evt = ipa3_eth_client_disconn_evt;
 	return 0;
 }
 
@@ -9933,4 +9951,21 @@ void ipa3_eth_get_status(u32 client, int scratch_id,
 	stats->wp = gsi_get_refetch_reg(ch_id, false);
 	stats->err = gsi_get_drop_stats(ipa_ep_idx, scratch_id);
 	IPA_ACTIVE_CLIENTS_DEC_SIMPLE();
+}
+
+bool ipa3_is_modem_up(void)
+{
+	bool is_up;
+
+	mutex_lock(&ipa3_ctx->lock);
+	is_up = ipa3_ctx->is_modem_up;
+	mutex_unlock(&ipa3_ctx->lock);
+	return is_up;
+}
+
+void ipa3_set_modem_up(bool is_up)
+{
+	mutex_lock(&ipa3_ctx->lock);
+	ipa3_ctx->is_modem_up = is_up;
+	mutex_unlock(&ipa3_ctx->lock);
 }

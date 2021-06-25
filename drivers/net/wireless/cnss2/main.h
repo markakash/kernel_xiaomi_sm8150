@@ -1,4 +1,4 @@
-/* Copyright (c) 2016-2020, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2016-2021, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -125,6 +125,7 @@ struct cnss_fw_mem {
 	phys_addr_t pa;
 	bool valid;
 	u32 type;
+	unsigned long attrs;
 };
 
 struct wlfw_rf_chip_info {
@@ -297,6 +298,7 @@ struct cnss_plat_data {
 	struct wlfw_rf_board_info board_info;
 	struct wlfw_soc_info soc_info;
 	struct wlfw_fw_version_info fw_version_info;
+	struct cnss_dev_mem_info dev_mem_info[CNSS_MAX_DEV_MEM_NUM];
 	u32 fw_mem_seg_len;
 	struct cnss_fw_mem fw_mem[QMI_WLFW_MAX_NUM_MEM_SEG];
 	struct cnss_fw_mem m3_mem;
@@ -354,5 +356,11 @@ void cnss_unregister_ramdump(struct cnss_plat_data *plat_priv);
 void cnss_set_pin_connect_status(struct cnss_plat_data *plat_priv);
 const char *cnss_get_fw_path(struct cnss_plat_data *plat_priv);
 int cnss_dev_specific_power_on(struct cnss_plat_data *plat_priv);
+int cnss_va_to_pa(struct device *dev, size_t size, void *va, dma_addr_t dma,
+		  phys_addr_t *pa, unsigned long attrs);
+int cnss_minidump_add_region(struct cnss_plat_data *plat_priv,
+			     enum cnss_fw_dump_type type, int seg_no,
+			     void *va, phys_addr_t pa, size_t size);
+
 
 #endif /* _CNSS_MAIN_H */

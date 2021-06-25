@@ -1,4 +1,4 @@
-/* Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -1296,9 +1296,12 @@ int ipa_drop_stats_init(void)
 {
 	u32 pipe_bitmask = 0;
 
-	/* Always enable drop stats for USB CONS and DPL Pipe. */
-	pipe_bitmask |= IPA_CLIENT_BIT_32(IPA_CLIENT_USB_CONS) |
-			IPA_CLIENT_BIT_32(IPA_CLIENT_USB_DPL_CONS);
+	pipe_bitmask |= ipa3_ctx->use_tput_est_ep ?
+			(IPA_CLIENT_BIT_32(IPA_CLIENT_USB_CONS) |
+			IPA_CLIENT_BIT_32(IPA_CLIENT_USB_DPL_CONS) |
+			IPA_CLIENT_BIT_32(IPA_CLIENT_TPUT_CONS)) :
+			(IPA_CLIENT_BIT_32(IPA_CLIENT_USB_CONS) |
+			IPA_CLIENT_BIT_32(IPA_CLIENT_USB_DPL_CONS));
 
 	return ipa_init_drop_stats(pipe_bitmask);
 }
@@ -2080,7 +2083,7 @@ static ssize_t ipa_debugfs_enable_disable_drop_stats(struct file *file,
 		goto bail;
 	}
 
-	missing = copy_from_user(dbg_buff, ubuf, count);
+	missing = copy_from_user(dbg_buff, ubuf, min(sizeof(dbg_buff), count));
 	if (missing) {
 		ret = -EFAULT;
 		goto bail;

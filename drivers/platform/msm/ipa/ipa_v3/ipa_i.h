@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2020, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2021, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -59,6 +59,7 @@
 #define IPA3_MAX_NUM_PIPES 31
 #define IPA_SYS_DESC_FIFO_SZ 0x800
 #define IPA_SYS_TX_DATA_DESC_FIFO_SZ 0x1000
+#define IPA_SYS_TPUT_EP_DESC_FIFO_SZ 0x10
 #define IPA_COMMON_EVENT_RING_SIZE 0x7C00
 #define IPA_LAN_RX_HEADER_LENGTH (2)
 #define IPA_QMAP_HEADER_LENGTH (4)
@@ -104,6 +105,15 @@
 
 /* Default aggregation timeout for WAN/LAN pipes. */
 #define IPA_GENERIC_AGGR_TIME_LIMIT 500 /* 0.5msec */
+
+#define WLAN_IPA_CONNECT_EVENT(m) (m == WLAN_STA_CONNECT || \
+	m == WLAN_AP_CONNECT || \
+	m == WLAN_CLIENT_CONNECT_EX || \
+	m == WLAN_CLIENT_CONNECT)
+
+#define WLAN_IPA_DISCONNECT_EVENT(m) (m == WLAN_STA_DISCONNECT || \
+	m == WLAN_AP_DISCONNECT || \
+	m == WLAN_CLIENT_DISCONNECT)
 
 #define IPADBG(fmt, args...) \
 	do { \
@@ -1401,6 +1411,7 @@ struct ipa3_stats {
 	u32 flow_disable;
 	u32 tx_non_linear;
 	u32 rx_page_drop_cnt;
+	u32 rx_drop_pkts;
 	struct ipa3_page_recycle_stats page_recycle_stats[2];
 };
 
@@ -1963,6 +1974,8 @@ struct ipa3_context {
 	struct mutex msg_lock;
 	struct list_head msg_wlan_client_list;
 	struct mutex msg_wlan_client_lock;
+	struct list_head msg_lan_list;
+	struct mutex msg_lan_lock;
 	wait_queue_head_t msg_waitq;
 	enum ipa_hw_type ipa_hw_type;
 	enum ipa3_hw_mode ipa3_hw_mode;
@@ -2088,6 +2101,8 @@ struct ipa3_context {
 	struct ipa3_eth_info
 		eth_info[IPA_ETH_CLIENT_MAX][IPA_ETH_INST_ID_MAX];
 	bool ipa_in_cpe_cfg;
+	bool is_modem_up;
+	bool use_tput_est_ep;
 };
 
 struct ipa3_plat_drv_res {
@@ -2145,6 +2160,7 @@ struct ipa3_plat_drv_res {
 	u32 lan_aggr_time_limit;
 	u32 rndis_aggr_time_limit;
 	bool ipa_in_cpe_cfg;
+	bool use_tput_est_ep;
 };
 
 /**
@@ -2616,6 +2632,7 @@ int ipa3_table_dma_cmd(struct ipa_ioc_nat_dma_cmd *dma);
 int ipa3_nat_dma_cmd(struct ipa_ioc_nat_dma_cmd *dma);
 
 int ipa3_nat_del_cmd(struct ipa_ioc_v4_nat_del *del);
+int ipa3_nat_cleanup_cmd(void);
 int ipa3_del_nat_table(struct ipa_ioc_nat_ipv6ct_table_del *del);
 int ipa3_del_ipv6ct_table(struct ipa_ioc_nat_ipv6ct_table_del *del);
 
@@ -2629,6 +2646,8 @@ int ipa3_app_clk_vote(enum ipa_app_clock_vote_type vote_type);
 int ipa3_send_msg(struct ipa_msg_meta *meta, void *buff,
 		  ipa_msg_free_fn callback);
 int ipa3_resend_wlan_msg(void);
+int ipa3_resend_lan_msg(void);
+int ipa3_resend_driver_msg(void);
 int ipa3_register_pull_msg(struct ipa_msg_meta *meta, ipa_msg_pull_fn callback);
 int ipa3_deregister_pull_msg(struct ipa_msg_meta *meta);
 
@@ -2670,6 +2689,8 @@ void ipa3_free_skb(struct ipa_rx_data *data);
 /*
  * System pipes
  */
+int ipa3_setup_tput_pipe(void);
+
 int ipa3_setup_sys_pipe(struct ipa_sys_connect_params *sys_in, u32 *clnt_hdl);
 
 int ipa3_teardown_sys_pipe(u32 clnt_hdl);
@@ -3322,4 +3343,8 @@ static inline void *alloc_and_init(u32 size, u32 init_val)
 bool ipa3_is_apq(void);
 /* check if odl is connected */
 bool ipa3_is_odl_connected(void);
+/* check if modem is up */
+bool ipa3_is_modem_up(void);
+/* set modem is up */
+void ipa3_set_modem_up(bool is_up);
 #endif /* _IPA3_I_H_ */
